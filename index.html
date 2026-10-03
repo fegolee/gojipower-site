@@ -1,0 +1,383 @@
+<title>GOJIPOWER Access</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f5f6f8; --surface:#fff; --surface-2:#eef1f4; --ink:#14181e; --muted:#5b6673;
+  --line:#dde1e7; --line-2:#c9d0d8; --accent:#c2411f; --accent-soft:#fbeee9;
+  --good:#14714b; --good-soft:#e8f4ee; --warn:#8f5e06; --warn-soft:#fbf2df; --bad:#9e2c2c; --bad-soft:#fbecec;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1116; --surface:#141a21; --surface-2:#1a222b; --ink:#e4e9ef; --muted:#8a96a4;
+  --line:#222b35; --line-2:#2f3b47; --accent:#ef6136; --accent-soft:#2a1810;
+  --good:#38a170; --good-soft:#0f2319; --warn:#cf9524; --warn-soft:#241d0c; --bad:#d96565; --bad-soft:#2a1414;
+}}
+:root[data-theme="dark"]{
+  --bg:#0d1116; --surface:#141a21; --surface-2:#1a222b; --ink:#e4e9ef; --muted:#8a96a4;
+  --line:#222b35; --line-2:#2f3b47; --accent:#ef6136; --accent-soft:#2a1810;
+  --good:#38a170; --good-soft:#0f2319; --warn:#cf9524; --warn-soft:#241d0c; --bad:#d96565; --bad-soft:#2a1414;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:960px;margin:0 auto;padding-inline:20px;padding-block:0}
+h1,h2,h3{text-wrap:balance;margin:0}
+h1{font-size:clamp(1.85rem,5.2vw,2.9rem);font-weight:600;letter-spacing:-.025em;line-height:1.08}
+h2{font-size:clamp(1.15rem,3vw,1.45rem);font-weight:600;letter-spacing:-.015em}
+h3{font-size:.98rem;font-weight:600}
+p{margin:0}
+a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+a:hover{border-bottom-color:var(--accent)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+.eyebrow{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topin{max-width:960px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mark{font-family:var(--mono);font-weight:600;letter-spacing:.06em;font-size:.86rem}
+.mark span{color:var(--accent)}
+.topin .sp{flex:1 1 auto}
+.chip{font-family:var(--mono);font-size:.7rem;padding:3px 8px;border:1px solid var(--line-2);border-radius:3px;color:var(--muted);background:var(--surface);cursor:pointer}
+.chip:hover{color:var(--ink);border-color:var(--accent)}
+
+section{padding-block:clamp(38px,6vw,60px);border-top:1px solid var(--line)}
+section:first-of-type{border-top:0}
+.shead{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.lede{color:var(--muted);max-width:66ch}
+
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:24px}
+.cell{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:5px;min-width:0}
+.cell .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.2rem;font-weight:500;letter-spacing:-.02em;overflow-wrap:anywhere}
+.cell .s{font-size:.72rem;color:var(--muted);font-family:var(--mono)}
+.cell.hl{background:var(--accent-soft)} .cell.hl .v{color:var(--accent)}
+
+.callout{margin-top:22px;border-left:3px solid var(--accent);background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px}
+.panel .ph{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.panel p{color:var(--muted);font-size:.9rem}
+
+.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+.tbl th,.tbl td{padding:9px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
+.tbl th:first-child,.tbl td:first-child{text-align:left;white-space:normal;min-width:190px}
+.tbl thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--surface-2)}
+.tbl tbody tr:last-child td{border-bottom:0}
+.tbl td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.tbl tr.em td{background:var(--bad-soft);font-weight:600}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.pill.g{background:var(--good-soft);color:var(--good)}
+.pill.w{background:var(--warn-soft);color:var(--warn)}
+.pill.b{background:var(--bad-soft);color:var(--bad)}
+.pill.n{background:var(--surface-2);color:var(--muted)}
+
+ul.plain{margin:0;padding-left:1.1em;color:var(--muted);font-size:.9rem;display:flex;flex-direction:column;gap:7px}
+ol.crit{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:9px;font-size:.9rem;color:var(--muted)}
+ol.crit b{color:var(--ink);font-weight:600}
+.addr{font-family:var(--mono);font-size:.76rem;word-break:break-all;color:var(--muted)}
+.note{font-size:.82rem;color:var(--muted);font-family:var(--mono)}
+pre.cmd{background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:12px 14px;overflow-x:auto;font-family:var(--mono);font-size:.76rem;margin:0;color:var(--ink)}
+footer{border-top:1px solid var(--line);padding-block:30px;color:var(--muted);font-size:.84rem}
+.frow{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.stale{opacity:.45}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<header class="top"><div class="topin">
+  <span class="mark">GOJI<span>POWER</span></span>
+  <button class="chip" id="copyca" title="copy contract address">DYCL…Apump ⧉</button>
+  <span class="sp"></span>
+  <button class="chip" id="lang">中文</button>
+  <button class="chip" id="theme">◐</button>
+</div></header>
+
+<div class="wrap">
+
+<!-- ===== HERO ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="Access credential · Solana · SPL" data-zh="准入凭证 · Solana · SPL">Access credential · Solana · SPL</span>
+    <h1 data-en="One sample so far. Ours." data-zh="目前只有一个样本，我们自己的。">One sample so far. Ours.</h1>
+  </div>
+  <p class="lede" data-en="Good traders have followers who pay them, and no room of their own to reach them in. GOJIPOWER is the access credential for traders&#39; own private communities — the analysis, calls and consultation that a copy-trading profit share does not cover. We built the first one ourselves, on a public live account anyone can check, because a path should be walked before it is sold. There is exactly one sample today, and this page says so rather than implying a network that does not exist yet." data-zh="好的交易员有愿意付钱的跟随者，却没有一个属于自己的房间去触达他们。GOJIPOWER 是交易员自有私密社区的准入凭证——那些分润覆盖不到的分析、连麦与咨询。我们自己先做了第一个，用的是任何人都能核对的公开实盘账户，因为一条路应该先走通再拿去卖。今天确实只有一个样本，本页直说这件事，而不是去暗示一个还不存在的网络。">Good traders have followers who pay them, and no room of their own to reach them in. GOJIPOWER is the access credential for traders&#39; own private communities — the analysis, calls and consultation that a copy-trading profit share does not cover. We built the first one ourselves, on a public live account anyone can check, because a path should be walked before it is sold. There is exactly one sample today, and this page says so rather than implying a network that does not exist yet.</p>
+
+  <div class="board">
+    <div class="cell"><span class="k" data-en="Sample one · live account" data-zh="第一样本 · 实盘账户">Sample one · live account</span><span class="v" style="color:var(--good)">190d</span><span class="s" data-en="public, verifiable" data-zh="公开可核对">public, verifiable</span></div>
+    <div class="cell"><span class="k" data-en="Research briefs" data-zh="研究简报">Research briefs</span><span class="v" style="color:var(--good)" data-en="Daily" data-zh="每日">Daily</span><span class="s" data-en="gate not live yet" data-zh="门控尚未上线">gate not live yet</span></div>
+    <div class="cell"><span class="k" data-en="Traders besides us" data-zh="我们之外的交易员">Traders besides us</span><span class="v" style="color:var(--bad)" data-en="None yet" data-zh="尚无">None yet</span><span class="s" data-en="stated, not hidden" data-zh="直说，不藏">stated, not hidden</span></div>
+  </div>
+
+  <div class="callout">
+    <span class="eyebrow" data-en="The gap this fills" data-zh="它填的是哪个缺口">The gap this fills</span>
+    <p data-en="A copy-trading lead has followers and no way to speak to them. The exchange holds the relationship, the profit share is the only channel, and everything the trader knows that is not an order stays unpaid. What is missing is a room the trader owns outright — where analysis and consultation can be charged for directly, and where the member list cannot be taken away by the venue that granted it." data-zh="一个带单交易员有跟随者，却无法对他们说话。关系握在交易所手里，分润是唯一的通道，而这个交易员知道的一切「不是一张订单」的东西都收不到钱。缺的是一个完全属于他自己的房间——分析与咨询可以直接收费，而成员名单不会被当初给他名单的那个平台收回去。">A copy-trading lead has followers and no way to speak to them. The exchange holds the relationship, the profit share is the only channel, and everything the trader knows that is not an order stays unpaid. What is missing is a room the trader owns outright — where analysis and consultation can be charged for directly, and where the member list cannot be taken away by the venue that granted it.</p>
+  </div>
+</section>
+
+<!-- ===== SERVICES ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="01 · What holding gets you" data-zh="01 · 持有能换到什么">01 · What holding gets you</span>
+    <h2 data-en="Two things today. Neither is gated yet." data-zh="今天有两样东西，都还没上门控。">Two things today. Neither is gated yet.</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel"><div class="ph"><h3 data-en="Research briefs" data-zh="研究简报">Research briefs</h3><span class="pill g" data-en="Produced daily" data-zh="每日产出">Produced daily</span></div>
+      <ul class="plain">
+        <li data-en="One brief a day: where activity is moving, what launched on-chain in the last cycle, what the layer-2s are actually sending back to their settlement layer, and what the industry is talking about." data-zh="每天一份：资金与活跃度在往哪走、上一轮链上发了什么新东西、各条 L2 实际回流给结算层多少、以及行业在谈什么。">One brief a day: where activity is moving, what launched on-chain in the last cycle, what the layer-2s are actually sending back to their settlement layer, and what the industry is talking about.</li>
+        <li data-en="Facts and interpretation are printed separately, and the interpretation is labelled as carrying no predictive weight — so you can read one without the other." data-zh="事实与解读分开印，解读那一节明确标注不带任何预测权重——你可以只读其中一半。">Facts and interpretation are printed separately, and the interpretation is labelled as carrying no predictive weight — so you can read one without the other.</li>
+        <li data-en="No performance claim is attached, because none is needed: it reports what happened, not what will." data-zh="不附带任何业绩声称，因为它不需要——它报告发生了什么，不报告将要发生什么。">No performance claim is attached, because none is needed: it reports what happened, not what will.</li>
+      </ul>
+      <p class="note" style="margin-top:12px" data-en="Eligibility when the gate opens: hold ≥ $25 equivalent." data-zh="门控开放后的资格：持有 ≥ $25 等值。">Eligibility when the gate opens: hold ≥ $25 equivalent.</p></div>
+
+    <div class="panel"><div class="ph"><h3 data-en="Strategy subscription · private copy access" data-zh="策略订阅 · 私域跟单">Strategy subscription · private copy access</h3><span class="pill b" data-en="Not open" data-zh="未开放">Not open</span></div>
+      <ul class="plain">
+        <li data-en="Will not open until the systematic strategy meets the published bar in section 02. It does not meet it today." data-zh="在系统策略达到第 02 节公布的那条线之前不会开放。今天没有达到。">Will not open until the systematic strategy meets the published bar in section 02. It does not meet it today.</li>
+        <li data-en="The live account in section 03 is sample one, not the product. Copying it is available on Binance to anyone, with no token and no permission from us." data-zh="第 03 节的实盘账户是第一样本，不是产品。跟单在币安上对任何人开放，不需要代币，也不需要我们同意。">The live account in section 03 is sample one, not the product. Copying it is available on Binance to anyone, with no token and no permission from us.</li>
+        <li data-en="When it opens, the eligibility threshold is published here before the first subscription is sold." data-zh="开放时，资格门槛会在卖出第一份订阅之前公布在这里。">When it opens, the eligibility threshold is published here before the first subscription is sold.</li>
+      </ul>
+      <p class="note" style="margin-top:12px" data-en="Eligibility: not set. Nothing is being sold." data-zh="资格：未设定。目前没有任何东西在售。">Eligibility: not set. Nothing is being sold.</p></div>
+  </div>
+
+  <div class="callout" style="border-left-color:var(--muted)">
+    <span class="eyebrow" data-en="Where this stands when other traders join" data-zh="有别的交易员加入时，这里站在哪">Where this stands when other traders join</span>
+    <p data-en="Every trader will show a record a third party can check — venue link, days live, assets, what the people following them actually made, and the risk labels the venue itself assigned. Nothing here ranks them, recommends them, or marks any of them as preferred. The job is to make records legible, not to endorse the people behind them, and that distinction is the whole reason this page can be trusted at all." data-zh="每一个交易员展示的都是第三方可以核对的记录——平台链接、实盘天数、资产规模、跟随他的人实际赚到了多少、以及平台自己打的风险标签。这里不排名、不推荐、不标注「优选」。我们的职责是让记录可读，不是为记录背后的人背书——而正是这个区分，才让这个页面有被信任的资格。">Every trader will show a record a third party can check — venue link, days live, assets, what the people following them actually made, and the risk labels the venue itself assigned. Nothing here ranks them, recommends them, or marks any of them as preferred. The job is to make records legible, not to endorse the people behind them, and that distinction is the whole reason this page can be trusted at all.</p>
+  </div>
+</section>
+
+<!-- ===== THE BAR ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="02 · Fixed in advance, not revisable" data-zh="02 · 事先写定，不得修改">02 · Fixed in advance, not revisable</span>
+    <h2 data-en="The bar the strategy has to clear" data-zh="策略必须跨过的那条线">The bar the strategy has to clear</h2>
+    <p class="lede" data-en="All six conditions, on forward records only — never a backtest. Any change to this list is logged with its date, its reason, and how far the strategy was from clearing the bar at that moment — the field that separates an honest revision from a convenient one." data-zh="六个条件全部成立才算数，且只认前向记录，绝不认回测。这份清单的任何改动都会连同日期、理由、以及改动当时距离达标还有多远一并记录——最后这一栏，正是把一次诚实的修订和一次方便的修订分开的那一栏。">All six conditions, on forward records only — never a backtest. Any change to this list is logged with its date, its reason, and how far the strategy was from clearing the bar at that moment — the field that separates an honest revision from a convenient one.</p>
+  </div>
+  <ol class="crit">
+    <li><b data-en="At least 100 forward decisions." data-zh="前向决策数 ≥ 100。">At least 100 forward decisions.</b> <span data-en="Not 8, not 20. Small samples produce confident-looking numbers that mean nothing." data-zh="不是 8，不是 20。小样本会产出看起来很笃定、实则毫无意义的数字。">Not 8, not 20. Small samples produce confident-looking numbers that mean nothing.</span></li>
+    <li><b data-en="Net expectancy positive after real fees," data-zh="按真实费率扣费后净期望为正，">Net expectancy positive after real fees,</b> <span data-en="with the lower bound of a bootstrap confidence interval above zero — not merely a positive point estimate." data-zh="且自助法置信区间的下界高于零——不是「点估计为正」就算。">with the lower bound of a bootstrap confidence interval above zero — not merely a positive point estimate.</span></li>
+    <li><b data-en="Still clears condition 2 with the single largest contributor removed." data-zh="去掉贡献最大的那一笔之后，条件 2 仍然成立。">Still clears condition 2 with the single largest contributor removed.</b> <span data-en="An edge carried by one trade is one trade, not an edge. Stated as a share of P&L this test breaks when total P&L is near zero, so it is run by deletion instead." data-zh="由一笔交易撑起来的优势，是一笔交易，不是优势。写成「占总盈亏的百分比」在总盈亏接近零时会失效，所以改成直接删掉那一笔重算。">An edge carried by one trade is one trade, not an edge. Stated as a share of P&amp;L this test breaks when total P&amp;L is near zero, so it is run by deletion instead.</span></li>
+    <li><b data-en="Measured against realised reward-to-risk, not designed." data-zh="用实际实现的盈亏比衡量，不用设计的。">Measured against realised reward-to-risk, not designed.</b> <span data-en="Rules with a time limit let winners close early; the breakeven win rate moves accordingly." data-zh="带时限的规则会让赢的那些提前平仓，保本胜率会随之移动。">Rules with a time limit let winners close early; the breakeven win rate moves accordingly.</span></li>
+    <li><b data-en="At least 25 decisions in each of two different volatility bands, spanning six months." data-zh="两个不同的波动档里各有至少 25 个决策，首尾间隔不少于六个月。">At least 25 decisions in each of two different volatility bands, spanning six months.</b> <span data-en="Bands are pre-calibrated 4-hour true-range cut-points, so a different regime is computed rather than declared — it is otherwise the softest word on this list." data-zh="档位用已校准的 4 小时真实波幅切点，所以「换了一个 régime」是算出来的、不是宣称的——否则它是这份清单里最软的一个词。">Bands are pre-calibrated 4-hour true-range cut-points, so a different regime is computed rather than declared — it is otherwise the softest word on this list.</span></li>
+    <li><b data-en="Annualised Sharpe on daily net returns of at least 1.0." data-zh="日净收益的年化夏普 ≥ 1.0。">Annualised Sharpe on daily net returns of at least 1.0.</b> <span data-en="An absolute floor, not a comparison against the live account: its Sharpe is computed by Binance under a formula we do not have, and two Sharpes computed by different parties under different conventions cannot be subtracted from one another." data-zh="这是绝对门槛，不是与实盘账户比较：后者的夏普由币安按我们拿不到的口径算出，两个由不同方按不同口径算出的夏普不能相减。">An absolute floor, not a comparison against the live account: its Sharpe is computed by Binance under a formula we do not have, and two Sharpes computed by different parties under different conventions cannot be subtracted from one another.</span></li>
+  </ol>
+
+  <div class="callout" style="margin-top:22px">
+    <span class="eyebrow" data-en="Current status" data-zh="当前状态">Current status</span>
+    <p data-en="Not met. Nothing is for sale. The full readout against all six conditions — every number produced by the measurement script, dated — is published at the moment the bar is cleared and before anything is sold, so the claim can never be made without the figures behind it. Work in progress toward the bar is not broadcast while it is in progress; the commitment is the publication, not the running commentary." data-zh="未达标，目前没有任何东西在售。六个条件的完整读数——每一个数字都由测量脚本算出、带日期——会在达标那一刻、卖出任何东西之前公布，所以这个宣称永远不可能脱离它背后的数字被做出。达标之前的进展不对外广播：承诺的是那次公布，不是过程中的实况解说。">Not met. Nothing is for sale. The full readout against all six conditions — every number produced by the measurement script, dated — is published at the moment the bar is cleared and before anything is sold, so the claim can never be made without the figures behind it. Work in progress toward the bar is not broadcast while it is in progress; the commitment is the publication, not the running commentary.</p>
+  </div>
+  <p class="note" style="margin-top:12px" data-en="Counted cumulatively from the strategy version start, never as a trailing window — a trailing window would let us simply wait for a good hundred. Changing the strategy starts a new version at zero. These conditions bind us, as sample one; traders who join later set their own terms and publish their own records." data-zh="按该策略版本起算以来累计计数，绝不用滚动窗口——滚动窗口等于可以一直等到一个好的一百笔。改了策略就是新版本，从零开始。这些条件约束的是我们自己（第一样本）；后来加入的交易员各自定自己的条款、公布自己的记录。">Counted cumulatively from the strategy version start, never as a trailing window — a trailing window would let us simply wait for a good hundred. Changing the strategy starts a new version at zero. These conditions bind us, as sample one; traders who join later set their own terms and publish their own records.</p>
+</section>
+
+<!-- ===== LIVE ACCOUNT ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="03 · Public, verifiable, not for sale" data-zh="03 · 公开、可核实、非卖品">03 · Public, verifiable, not for sale</span>
+    <h2 data-en="The live account" data-zh="实盘账户">The live account</h2>
+    <p class="lede" data-en="A public Binance copy-trading account, trading live since 2026-03-26. It is sample one: the first instance of the model, built by us, with our own money at stake. Anyone can copy it on Binance directly — no token, no subscription, no permission from us." data-zh="一个公开的币安带单账户，自 2026-03-26 起实盘交易。它是第一样本：这个模式的第一个实例，我们自己做的，押的是自己的钱。任何人都可以直接在币安跟单——不需要代币、不需要订阅、不需要我们同意。">A public Binance copy-trading account, trading live since 2026-03-26. It is sample one: the first instance of the model, built by us, with our own money at stake. Anyone can copy it on Binance directly — no token, no subscription, no permission from us.</p>
+  </div>
+  <div class="board">
+    <div class="cell"><span class="k" data-en="Days live" data-zh="实盘天数">Days live</span><span class="v">190</span><span class="s">since 2026-03-26</span></div>
+    <div class="cell"><span class="k">AUM</span><span class="v">$52,390</span><span class="s" data-en="copier assets" data-zh="跟随者资产">copier assets</span></div>
+    <div class="cell hl"><span class="k" data-en="Copier P&L" data-zh="跟随者累计盈亏">Copier P&amp;L</span><span class="v">+$5,846</span><span class="s" data-en="cumulative since 2026-03-26" data-zh="自 2026-03-26 起累计">cumulative since 2026-03-26</span></div>
+    <div class="cell"><span class="k" data-en="Copiers" data-zh="跟随者">Copiers</span><span class="v">29 / 200</span><span class="s" data-en="130 cumulative · 0 lead closures" data-zh="累计 130 · 0 次主动退出">130 cumulative · 0 lead closures</span></div>
+    <div class="cell"><span class="k">Sharpe</span><span class="v">2.83</span><span class="s" data-en="leverage-invariant" data-zh="与杠杆无关">leverage-invariant</span></div>
+    <div class="cell"><span class="k" data-en="Profit share" data-zh="分成比例">Profit share</span><span class="v">10%</span><span class="s" data-en="min copy $50" data-zh="最低跟单 $50">min copy $50</span></div>
+  </div>
+  <p class="note" style="margin-top:10px" data-en="Figures read from Binance on 2026-10-03 and restated here as a dated snapshot, not a live feed — Binance does not permit a browser on this domain to read them. The cumulative copier figure moves in both directions as positions close: it read $7,194 one day earlier. Verify at the source:" data-zh="数据于 2026-10-03 自币安读取，在此作为带日期的快照重述，不是实时源——币安不允许本域名的浏览器直接读取。跟随者累计盈亏这个数会随持仓平仓**往两边走**：前一天读到的是 $7,194。到源头核对：">Figures read from Binance on 2026-10-03 and restated here as a dated snapshot, not a live feed — Binance does not permit a browser on this domain to read them. The cumulative copier figure moves in both directions as positions close: it read $7,194 one day earlier. Verify at the source:</p>
+  <p style="margin-top:6px"><a href="https://www.binance.com/copy-trading/lead-details/4975390574377459456" target="_blank" rel="noopener">binance.com/copy-trading/lead-details/4975390574377459456</a></p>
+
+  <div class="panel" style="margin-top:18px;border-color:var(--bad)">
+    <div class="ph"><h3 data-en="What the numbers above do not say" data-zh="上面那些数字没有说的事">What the numbers above do not say</h3><span class="pill b" data-en="Read this" data-zh="请读这段">Read this</span></div>
+    <ul class="plain">
+      <li data-en="Binance tags this account HIGH LEVERAGE. Our own published research finds that beyond roughly 3× leverage, even a genuinely positive edge compounds into losses, and that leverage adds no information at all — it scales mean and standard deviation together. That tension is ours to answer, and we would rather state it than have you find it." data-zh="币安给这个账户打的标签是「高杠杆」。而我们自己公开的研究结论是：超过约 3 倍杠杆，即使真实为正的边缘也会复利成亏损；杠杆不带来任何信息——它把均值与标准差同时放大。这个矛盾由我们来回答，而我们宁愿自己说出来，也不愿你去发现它。">Binance tags this account HIGH LEVERAGE. Our own published research finds that beyond roughly 3× leverage, even a genuinely positive edge compounds into losses, and that leverage adds no information at all — it scales mean and standard deviation together. That tension is ours to answer, and we would rather state it than have you find it.</li>
+      <li data-en="190 days is one market regime. Condition 5 of the bar exists because of exactly this." data-zh="190 天只是一个市场 régime。那条线的第 5 个条件就是为这件事而设的。">190 days is one market regime. Condition 5 of the bar exists because of exactly this.</li>
+      <li data-en="Aggregate copier P&L is not any individual's result — entry timing, size and settings all differ. Past results do not predict future ones, and copy trading futures can lose the entire amount committed." data-zh="跟随者累计盈亏不等于任何一个人的结果——入场时点、规模、设置都不同。过往结果不预示未来，合约跟单可能损失全部投入金额。">Aggregate copier P&amp;L is not any individual's result — entry timing, size and settings all differ. Past results do not predict future ones, and copy trading futures can lose the entire amount committed.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===== LEDGER ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="04 · Live from the chain" data-zh="04 · 实时读自链上">04 · Live from the chain</span>
+    <h2 data-en="The token, including the parts that look bad" data-zh="代币，包括不好看的那些部分">The token, including the parts that look bad</h2>
+    <p class="lede" data-en="GOJIPOWER is a memecoin launched on pump.fun in April 2025. It has no cash flows and no claim on anything. Its only job here is to be the eligibility check — which it can only do if what it is, is legible. So here is all of it." data-zh="GOJIPOWER 是 2025 年 4 月发射在 pump.fun 上的 memecoin。它没有现金流，也不代表对任何东西的索取权。它在这里唯一的职责是充当资格验证——而它只有在「它是什么」可被读懂时才担得起这个职责。所以下面是全部。">GOJIPOWER is a memecoin launched on pump.fun in April 2025. It has no cash flows and no claim on anything. Its only job here is to be the eligibility check — which it can only do if what it is, is legible. So here is all of it.</p>
+  </div>
+  <div class="board">
+    <div class="cell"><span class="k">Price</span><span class="v" id="mPrice">$0.002222</span><span class="s" id="mChg">24h —</span></div>
+    <div class="cell"><span class="k" data-en="Market cap" data-zh="市值">Market cap</span><span class="v" id="mMcap">$2,217,121</span><span class="s" data-en="supply × price" data-zh="供应量 × 价格">supply × price</span></div>
+    <div class="cell hl"><span class="k" data-en="Pool depth · one side" data-zh="池子深度 · 单边">Pool depth · one side</span><span class="v" id="mPool">$69,609</span><span class="s" data-en="what the market can actually pay" data-zh="市场真正付得出的钱">what the market can actually pay</span></div>
+    <div class="cell hl"><span class="k" data-en="Market cap ÷ depth" data-zh="市值 ÷ 深度">Market cap ÷ depth</span><span class="v" id="mRatio">32×</span><span class="s" data-en="the gap nobody publishes" data-zh="没人公布的那个差距">the gap nobody publishes</span></div>
+    <div class="cell"><span class="k" data-en="Treasury wallet" data-zh="金库钱包">Treasury wallet</span><span class="v" id="mTreas">400,119,889</span><span class="s" data-en="unlocked · disposition pending" data-zh="未锁定 · 处置待定">unlocked · disposition pending</span></div>
+    <div class="cell"><span class="k" data-en="Mint authority" data-zh="增发权限">Mint authority</span><span class="v" id="mMint">null</span><span class="s" data-en="no new tokens, ever" data-zh="永远无法增发">no new tokens, ever</span></div>
+  </div>
+
+  <div class="grid2" style="margin-top:20px">
+    <div class="panel"><div class="ph"><h3 data-en="40% of supply is unlocked and undecided" data-zh="40% 的供应量已解锁，且尚未决定">40% of supply is unlocked and undecided</h3><span class="pill w" data-en="Pending" data-zh="待定">Pending</span></div>
+      <p data-en="400,000,000 tokens were locked in a Streamflow vesting contract from 2025-10-10 and released on a single cliff at 15:59 UTC on 2026-09-30. They are currently unlocked, in the treasury wallet, under no commitment. A decision on re-locking is pending and will be posted here with transaction hashes. Until then this says exactly what is true, which is less flattering than saying nothing." data-zh="4 亿枚自 2025-10-10 起锁在一份 Streamflow 归属合约里，于 2026-09-30 15:59 UTC 以单次 cliff 释放。目前它们处于未锁定状态、在金库钱包里、不受任何承诺约束。重锁的决定尚未做出，做出后会连同交易哈希公布在这里。在那之前，这里写的就是事实本身——它比什么都不说要难看。">400,000,000 tokens were locked in a Streamflow vesting contract from 2025-10-10 and released on a single cliff at 15:59 UTC on 2026-09-30. They are currently unlocked, in the treasury wallet, under no commitment. A decision on re-locking is pending and will be posted here with transaction hashes. Until then this says exactly what is true, which is less flattering than saying nothing.</p>
+      <p class="addr" style="margin-top:10px">treasury · BWJvyKD4EJSqiRStJwqp1MsuMYpjYPjfKXoYwiH2PKkM</p></div>
+
+    <div class="panel"><div class="ph"><h3 data-en="The holder count is mostly dust" data-zh="持币人数大部分是灰尘">The holder count is mostly dust</h3><span class="pill n" data-en="Measured 2026-10-02" data-zh="实测 2026-10-02">Measured 2026-10-02</span></div>
+      <p data-en="Explorers report roughly 1,500 holders. Of 1,510 token accounts, 340 hold nothing, and 648 hold exactly 1.0 token — the fingerprint of dust, not of positions. Median holding: 1.0 token." data-zh="区块浏览器显示约 1,500 个持币人。1,510 个代币账户里 340 个余额为零，648 个持有恰好 1.0 枚——这是灰尘的指纹，不是持仓。中位持仓 1.0 枚。">Explorers report roughly 1,500 holders. Of 1,510 token accounts, 340 hold nothing, and 648 hold exactly 1.0 token — the fingerprint of dust, not of positions. Median holding: 1.0 token.</p>
+      <div class="tscroll" style="margin-top:12px"><table class="tbl">
+        <thead><tr><th data-en="Holding above" data-zh="持仓超过">Holding above</th><th data-en="Wallets" data-zh="钱包">Wallets</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">$1</td><td class="n">158</td></tr>
+          <tr class="em"><td class="mono">$25</td><td class="n">75</td></tr>
+          <tr><td class="mono">$100</td><td class="n">59</td></tr>
+          <tr><td class="mono">$1,000</td><td class="n">29</td></tr>
+        </tbody></table></div>
+      <p class="note" style="margin-top:10px" data-en="Top 5 hold 65.3% · top 20 hold 98.2%." data-zh="前 5 名持有 65.3% · 前 20 名持有 98.2%。">Top 5 hold 65.3% · top 20 hold 98.2%.</p></div>
+  </div>
+
+  <h3 style="margin-top:26px" data-en="What a sale would actually return" data-zh="卖出真正能拿到多少">What a sale would actually return</h3>
+  <p class="note" style="margin:6px 0 12px" data-en="Computed from live reserves. The pool cannot pay out more than the SOL sitting in it, to everyone combined." data-zh="按实时储备量算出。池子付给所有人加起来的总额，不可能超过里面那些 SOL。">Computed from live reserves. The pool cannot pay out more than the SOL sitting in it, to everyone combined.</p>
+  <div class="tscroll"><table class="tbl">
+    <thead><tr><th data-en="Sell" data-zh="卖出">Sell</th><th data-en="Share" data-zh="占供应">Share</th><th data-en="Paper value" data-zh="账面价值">Paper value</th><th data-en="Actually received" data-zh="实际收到">Actually received</th><th data-en="Price impact" data-zh="价格冲击">Price impact</th></tr></thead>
+    <tbody id="impact"><tr><td colspan="5" class="note" style="text-align:left">loading…</td></tr></tbody>
+  </table></div>
+</section>
+
+<!-- ===== NOT TRUE YET ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="05 · Stated plainly" data-zh="05 · 直说">05 · Stated plainly</span>
+    <h2 data-en="What is not true yet" data-zh="还不成立的事">What is not true yet</h2>
+  </div>
+  <ul class="plain" style="font-size:.95rem">
+    <li data-en="No gated service is live yet. The briefs run; the access gate that checks your holding is being built, not integrated from somewhere." data-zh="目前还没有任何门控服务上线。简报在跑；检查持仓的那道门是在建，不是从别处接来的。">No gated service is live yet. The briefs run; the access gate that checks your holding is being built, not integrated from somewhere.</li>
+    <li data-en="Beagle and Decent Network, which we work with on the communication layer, ship a peer-to-peer messenger with self-generated key identity, voice and video, and meeting rooms. Their current product ships no payment layer, no paid groups and no token gating. We would rather say that than imply otherwise." data-zh="我们在通讯层上合作的 Beagle 与 Decent Network，交付的是 P2P 通讯、本地生成密钥身份、语音视频与会议室。它们当前的产品不含支付层、不含收费群、不含代币门控。我们宁可这么说，也不愿作相反的暗示。">Beagle and Decent Network, which we work with on the communication layer, ship a peer-to-peer messenger with self-generated key identity, voice and video, and meeting rooms. Their current product ships no payment layer, no paid groups and no token gating. We would rather say that than imply otherwise.</li>
+    <li data-en="The token has thin liquidity and extreme concentration, both shown above. Nothing on this page is a price target, a return, or a forecast, and GOJIPOWER carries the risk of total loss." data-zh="这个代币流动性很薄、集中度极高，两者都已在上面列出。本页任何内容都不是价格目标、收益承诺或预测，GOJIPOWER 存在全额损失的风险。">The token has thin liquidity and extreme concentration, both shown above. Nothing on this page is a price target, a return, or a forecast, and GOJIPOWER carries the risk of total loss.</li>
+    <li data-en="An earlier version of this site displayed a market cap of $39.7M. That was wrong by roughly 17×. It is recorded here rather than quietly deleted." data-zh="本站早前版本显示市值 $39.7M，错了约 17 倍。这里记录下来，而不是悄悄删掉。">An earlier version of this site displayed a market cap of $39.7M. That was wrong by roughly 17×. It is recorded here rather than quietly deleted.</li>
+  </ul>
+</section>
+
+<!-- ===== VERIFY ===== -->
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="06 · Check it yourself" data-zh="06 · 自己核对">06 · Check it yourself</span>
+    <h2 data-en="Nothing here needs to be taken on trust" data-zh="以上没有一条需要你信任">Nothing here needs to be taken on trust</h2>
+  </div>
+<pre class="cmd">MINT=DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump
+
+# price, reserves, volume
+curl -s "https://api.dexscreener.com/latest/dex/tokens/$MINT"
+
+# supply and mint authority — mintAuthority is null, no new tokens can ever be created
+curl -s https://api.mainnet-beta.solana.com -X POST -H 'Content-Type: application/json' \
+  -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"getAccountInfo\",\"params\":[\"$MINT\",{\"encoding\":\"jsonParsed\"}]}"
+
+# the live trading account
+open https://www.binance.com/copy-trading/lead-details/4975390574377459456</pre>
+  <p class="note" style="margin-top:12px" data-en="Holder distribution is measured with getProgramAccounts filtered to this mint and restated with its date, rather than served live — that call is too heavy for a browser to run on page load." data-zh="持仓分布用 getProgramAccounts 按本 mint 过滤实测，带日期重述而非实时加载——这个调用对浏览器加载时执行来说太重。">Holder distribution is measured with getProgramAccounts filtered to this mint and restated with its date, rather than served live — that call is too heavy for a browser to run on page load.</p>
+</section>
+
+<footer>
+  <div class="frow">
+    <span class="mark">GOJI<span>POWER</span></span>
+    <span class="sp" style="flex:1"></span>
+    <a href="https://x.com/GOJIPOWER" target="_blank" rel="noopener">X</a>
+    <a href="https://t.me/GOJIPOWER_SOL" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://www.binance.com/copy-trading/lead-details/4975390574377459456" target="_blank" rel="noopener">Live account</a>
+    <a href="https://beagle.chat" target="_blank" rel="noopener">Beagle</a>
+  </div>
+  <p class="addr" style="margin-top:14px">DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump</p>
+  <p style="margin-top:10px" data-en="No price target, no return and no forecast is offered anywhere on this page. Nothing here is investment advice. Trading futures, including copy trading, can lose the entire amount committed." data-zh="本页任何位置都不提供价格目标、收益承诺或预测。本页内容不构成投资建议。合约交易（含跟单）可能损失全部投入金额。">No price target, no return and no forecast is offered anywhere on this page. Nothing here is investment advice. Trading futures, including copy trading, can lose the entire amount committed.</p>
+</footer>
+</div>
+
+<script>
+var MINT="DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump";
+var TREASURY_ATA="22Uz4CKMeKS84Z4t7dmWsmZMTUS1XK4wSpJkZzq8T3S2";
+var RPC="https://api.mainnet-beta.solana.com";
+var LS=function(k,v){try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){return null}};
+
+var lang=LS("goji.lang")||"en";
+function applyLang(){
+  document.querySelectorAll("[data-en]").forEach(function(el){
+    var t=el.getAttribute("data-"+lang); if(t) el.textContent=t;
+  });
+  document.getElementById("lang").textContent = lang==="en" ? "中文" : "EN";
+}
+document.getElementById("lang").addEventListener("click",function(){
+  lang = lang==="en" ? "zh" : "en"; LS("goji.lang",lang); applyLang();
+});
+
+var th=LS("goji.theme"); if(th) document.documentElement.setAttribute("data-theme",th);
+document.getElementById("theme").addEventListener("click",function(){
+  var next = document.documentElement.getAttribute("data-theme")==="dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme",next); LS("goji.theme",next);
+});
+
+document.getElementById("copyca").addEventListener("click",function(){
+  var b=this;
+  (navigator.clipboard?navigator.clipboard.writeText(MINT):Promise.reject()).then(function(){
+    b.textContent="copied ✓"; setTimeout(function(){b.textContent="DYCL…Apump ⧉"},1400);
+  }).catch(function(){ b.textContent=MINT.slice(0,8)+"…"; });
+});
+
+var fmtU=function(n,d){return "$"+n.toLocaleString("en-US",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})};
+var fmtN=function(n){return Math.round(n).toLocaleString("en-US")};
+
+function rpc(method,params){
+  return fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({jsonrpc:"2.0",id:1,method:method,params:params})})
+    .then(function(r){return r.json()});
+}
+
+fetch("https://api.dexscreener.com/latest/dex/tokens/"+MINT)
+ .then(function(r){return r.json()})
+ .then(function(j){
+   var ps=(j.pairs||[]).filter(function(p){return p.liquidity&&p.liquidity.usd});
+   if(!ps.length) throw new Error("no pair");
+   ps.sort(function(a,b){return b.liquidity.usd-a.liquidity.usd});
+   var p=ps[0];
+   var px=parseFloat(p.priceUsd), solusd=px/parseFloat(p.priceNative);
+   var T=p.liquidity.base, Q=p.liquidity.quote, k=T*Q;
+   var pool=Q*solusd, mcap=p.marketCap||p.fdv;
+   var ppool=Q/T*solusd;
+
+   document.getElementById("mPrice").textContent="$"+px.toFixed(6);
+   var ch=p.priceChange&&p.priceChange.h24;
+   document.getElementById("mChg").textContent="24h "+(ch===undefined?"—":(ch>0?"+":"")+ch+"%");
+   document.getElementById("mMcap").textContent=fmtU(mcap);
+   document.getElementById("mPool").textContent=fmtU(pool);
+   document.getElementById("mRatio").textContent=(mcap/pool).toFixed(0)+"×";
+
+   var rows=[1e6,1e7,2.5e7,1.2e8,4e8];
+   document.getElementById("impact").innerHTML=rows.map(function(x){
+     var proceeds=Q-k/(T+x), ratio=Math.pow(T/(T+x),2);
+     return '<tr'+(x>=1.2e8?' class="em"':'')+'><td class="n">'+fmtN(x)+'</td><td class="n">'+(x/1e9*100).toFixed(2)+
+       '%</td><td class="n">'+fmtU(x*ppool)+'</td><td class="n">'+fmtU(proceeds*solusd)+
+       '</td><td class="n">−'+((1-ratio)*100).toFixed(1)+'%</td></tr>';
+   }).join("");
+ })
+ .catch(function(){
+   ["mPrice","mMcap","mPool","mRatio"].forEach(markStale);
+   document.getElementById("impact").innerHTML='<tr><td colspan="5" class="note" style="text-align:left">'+
+     (lang==="zh"?"实时数据暂时取不到；上方为 2026-10-02 实测值，请用第 06 节的命令核对。":
+      "Live data unavailable; figures above are as measured 2026-10-02 — verify with the commands in section 06.")+'</td></tr>';
+ });
+
+// A stale number shown as if it were live is exactly what this page argues against,
+// so when the chain read fails, the cell says so instead of quietly keeping its fallback.
+function markStale(id){
+  var cell=document.getElementById(id).parentNode, sub=cell.querySelector(".s");
+  if(sub) sub.textContent = lang==="zh" ? "截至 2026-10-02 · 实时读取失败" : "as of 2026-10-02 · live read failed";
+  cell.classList.add("stale");
+}
+
+rpc("getTokenAccountBalance",[TREASURY_ATA]).then(function(d){
+  var v=d&&d.result&&d.result.value;
+  if(!v) throw new Error("no value");
+  document.getElementById("mTreas").textContent=fmtN(parseFloat(v.uiAmountString));
+}).catch(function(){ markStale("mTreas"); });
+
+rpc("getAccountInfo",[MINT,{encoding:"jsonParsed"}]).then(function(d){
+  var i=d&&d.result&&d.result.value&&d.result.value.data.parsed.info;
+  if(!i) throw new Error("no value");
+  document.getElementById("mMint").textContent = i.mintAuthority===null ? "null" : "SET";
+}).catch(function(){ markStale("mMint"); });
+
+applyLang();
+</script>
