@@ -1,96 +1,162 @@
 <title>GOJIPOWER Access</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
 <style>
 :root{
-  --bg:#f5f6f8; --surface:#fff; --surface-2:#eef1f4; --ink:#14181e; --muted:#5b6673;
-  --line:#dde1e7; --line-2:#c9d0d8; --accent:#c2411f; --accent-soft:#fbeee9;
-  --good:#14714b; --good-soft:#e8f4ee; --warn:#8f5e06; --warn-soft:#fbf2df; --bad:#9e2c2c; --bad-soft:#fbecec;
-  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --bg:#06090d; --bg2:#0a0f15; --surface:#0e151c; --surface2:#131c25;
+  --line:#1b2733; --line2:#2b3e4e;
+  --ink:#dbe6f0; --muted:#6b8095;
+  --hot:#ff3b2e; --hot-dim:#c02a1e; --hot-soft:rgba(255,59,46,.10);
+  --cyan:#35d6e8; --cyan-soft:rgba(53,214,232,.09);
+  --amber:#f5c518; --amber-soft:rgba(245,197,24,.10);
+  --good:#2fe0a6; --good-soft:rgba(47,224,166,.09);
+  --bad:#ff4d4d;  --bad-soft:rgba(255,77,77,.10);
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0d1116; --surface:#141a21; --surface-2:#1a222b; --ink:#e4e9ef; --muted:#8a96a4;
-  --line:#222b35; --line-2:#2f3b47; --accent:#ef6136; --accent-soft:#2a1810;
-  --good:#38a170; --good-soft:#0f2319; --warn:#cf9524; --warn-soft:#241d0c; --bad:#d96565; --bad-soft:#2a1414;
-}}
-:root[data-theme="dark"]{
-  --bg:#0d1116; --surface:#141a21; --surface-2:#1a222b; --ink:#e4e9ef; --muted:#8a96a4;
-  --line:#222b35; --line-2:#2f3b47; --accent:#ef6136; --accent-soft:#2a1810;
-  --good:#38a170; --good-soft:#0f2319; --warn:#cf9524; --warn-soft:#241d0c; --bad:#d96565; --bad-soft:#2a1414;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  --disp:"Chakra Petch",var(--mono);
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
-.wrap{max-width:960px;margin:0 auto;padding-inline:20px;padding-block:0}
-h1,h2,h3{text-wrap:balance;margin:0}
-h1{font-size:clamp(1.85rem,5.2vw,2.9rem);font-weight:600;letter-spacing:-.025em;line-height:1.08}
-h2{font-size:clamp(1.15rem,3vw,1.45rem);font-weight:600;letter-spacing:-.015em}
-h3{font-size:.98rem;font-weight:600}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.62;
+     -webkit-font-smoothing:antialiased;overflow-x:hidden}
+/* 扫描线：固定、极淡、不吃点击 */
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;
+  background:repeating-linear-gradient(180deg,rgba(190,230,255,.022) 0 1px,transparent 1px 3px)}
+
+.wrap{max-width:980px;margin:0 auto;padding-inline:20px;padding-block:0;position:relative;z-index:1}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--disp);font-size:clamp(2rem,6vw,3.4rem);font-weight:700;line-height:1.02;
+   letter-spacing:-.02em;text-transform:uppercase;
+   text-shadow:0 0 28px rgba(255,59,46,.30)}
+h2{font-family:var(--disp);font-size:clamp(1.2rem,3.2vw,1.6rem);font-weight:600;letter-spacing:.01em}
+h3{font-family:var(--disp);font-size:1rem;font-weight:600;letter-spacing:.02em}
 p{margin:0}
-a{color:var(--accent);text-decoration:none;border-bottom:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
-a:hover{border-bottom-color:var(--accent)}
-a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
-.eyebrow{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(53,214,232,.3)}
+a:hover{border-bottom-color:var(--cyan);text-shadow:0 0 10px rgba(53,214,232,.45)}
+a:focus-visible,button:focus-visible{outline:1px solid var(--cyan);outline-offset:3px}
+
+.eyebrow{font-family:var(--mono);font-size:.68rem;font-weight:500;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--cyan);display:block}
+.eyebrow::before{content:"// ";opacity:.55}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
-header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-.topin{max-width:960px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.mark{font-family:var(--mono);font-weight:600;letter-spacing:.06em;font-size:.86rem}
-.mark span{color:var(--accent)}
+/* ── header ── */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;
+  background:rgba(6,9,13,.82);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line)}
+.topin{max-width:980px;margin:0 auto;padding:9px 20px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand img{width:34px;height:34px;border-radius:7px;display:block;
+  box-shadow:0 0 0 1px var(--line2),0 0 18px rgba(255,59,46,.26)}
+.wordmark{font-family:var(--disp);font-weight:700;letter-spacing:.09em;font-size:.95rem;text-transform:uppercase}
+.wordmark span{color:var(--hot)}
 .topin .sp{flex:1 1 auto}
-.chip{font-family:var(--mono);font-size:.7rem;padding:3px 8px;border:1px solid var(--line-2);border-radius:3px;color:var(--muted);background:var(--surface);cursor:pointer}
-.chip:hover{color:var(--ink);border-color:var(--accent)}
+.chip{font-family:var(--mono);font-size:.68rem;padding:4px 9px;border:1px solid var(--line2);
+  border-radius:2px;color:var(--muted);background:var(--surface);cursor:pointer;white-space:nowrap}
+.chip:hover{color:var(--cyan);border-color:var(--cyan)}
+/* 上行状态灯：反映实时取数真的成没成，不是装饰 */
+#uplink{font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+#uplink b{font-weight:500;color:var(--muted)}
+.led{width:7px;height:7px;border-radius:50%;background:var(--muted);box-shadow:0 0 9px currentColor;flex:none}
+#uplink.live .led{background:var(--good);color:var(--good);animation:bp 2.4s ease-in-out infinite}
+#uplink.live b{color:var(--good)}
+#uplink.down .led{background:var(--bad);color:var(--bad)}
+#uplink.down b{color:var(--bad)}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.35}}
 
-section{padding-block:clamp(38px,6vw,60px);border-top:1px solid var(--line)}
+/* ── sections ── */
+section{padding-block:clamp(40px,6.5vw,66px);border-top:1px solid var(--line);position:relative}
 section:first-of-type{border-top:0}
-.shead{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+/* 首屏网格，向下淡出 */
+section:first-of-type::before{content:"";position:absolute;inset:-1px 0 auto;height:420px;pointer-events:none;
+  background-image:linear-gradient(rgba(53,214,232,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(53,214,232,.055) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0%,transparent 100%)}
+.shead{display:flex;flex-direction:column;gap:7px;margin-bottom:20px;position:relative}
 .lede{color:var(--muted);max-width:66ch}
 
-.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:4px;overflow:hidden;margin-top:24px}
+/* ── 读数板 ── */
+.board{display:grid;grid-template-columns:repeat(auto-fit,minmax(152px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);margin-top:24px;position:relative}
 .cell{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:5px;min-width:0}
-.cell .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.2rem;font-weight:500;letter-spacing:-.02em;overflow-wrap:anywhere}
-.cell .s{font-size:.72rem;color:var(--muted);font-family:var(--mono)}
-.cell.hl{background:var(--accent-soft)} .cell.hl .v{color:var(--accent)}
+.cell .k{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:1.22rem;font-weight:600;
+  letter-spacing:-.01em;overflow-wrap:anywhere;color:var(--ink)}
+.cell .s{font-size:.7rem;color:var(--muted);font-family:var(--mono)}
+.cell.hl{background:linear-gradient(180deg,var(--hot-soft),transparent)}
+.cell.hl .v{color:var(--hot);text-shadow:0 0 16px rgba(255,59,46,.4)}
 
-.callout{margin-top:22px;border-left:3px solid var(--accent);background:var(--surface);padding:16px 18px;display:flex;flex-direction:column;gap:6px}
+.callout{margin-top:22px;background:var(--surface);padding:17px 19px;display:flex;flex-direction:column;gap:7px;
+  border:1px solid var(--line);border-left:2px solid var(--hot);position:relative}
+.callout p{color:var(--muted)}
+
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(272px,1fr));gap:18px}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px}
-.panel .ph{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+/* 角标：HUD 框 */
+.panel{background:var(--surface);border:1px solid var(--line);padding:19px;position:relative}
+.panel::before,.panel::after{content:"";position:absolute;width:11px;height:11px;
+  border:1px solid var(--cyan);opacity:.45;pointer-events:none}
+.panel::before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.panel::after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.panel .ph{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:11px}
 .panel p{color:var(--muted);font-size:.9rem}
 
-.tbl{width:100%;border-collapse:collapse;font-size:.88rem}
-.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+/* ── 表 ── */
+.tbl{width:100%;border-collapse:collapse;font-size:.87rem}
+.tscroll{overflow-x:auto;border:1px solid var(--line);background:var(--surface)}
 .tbl th,.tbl td{padding:9px 14px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line)}
-.tbl th:first-child,.tbl td:first-child{text-align:left;white-space:normal;min-width:190px}
-.tbl thead th{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;background:var(--surface-2)}
+.tbl th:first-child,.tbl td:first-child{text-align:left;white-space:normal;min-width:188px}
+.tbl thead th{font-family:var(--mono);font-size:.63rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--cyan);font-weight:500;background:var(--surface2)}
 .tbl tbody tr:last-child td{border-bottom:0}
+.tbl tbody tr:hover td{background:rgba(53,214,232,.035)}
 .tbl td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
-.tbl tr.em td{background:var(--bad-soft);font-weight:600}
+.tbl tr.em td{background:var(--hot-soft);color:var(--ink);font-weight:600}
 
-.pill{display:inline-block;font-family:var(--mono);font-size:.66rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;white-space:nowrap}
-.pill.g{background:var(--good-soft);color:var(--good)}
-.pill.w{background:var(--warn-soft);color:var(--warn)}
-.pill.b{background:var(--bad-soft);color:var(--bad)}
-.pill.n{background:var(--surface-2);color:var(--muted)}
+/* ── 状态灯徽标 ── */
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.63rem;
+  letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:2px;white-space:nowrap;
+  border:1px solid currentColor}
+.pill::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor;
+  box-shadow:0 0 7px currentColor;flex:none}
+.pill.g{color:var(--good);background:var(--good-soft)}
+.pill.w{color:var(--amber);background:var(--amber-soft)}
+.pill.b{color:var(--bad);background:var(--bad-soft)}
+.pill.n{color:var(--muted);background:var(--surface2)}
 
-ul.plain{margin:0;padding-left:1.1em;color:var(--muted);font-size:.9rem;display:flex;flex-direction:column;gap:7px}
-ol.crit{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:9px;font-size:.9rem;color:var(--muted)}
+ul.plain{margin:0;padding-left:0;list-style:none;color:var(--muted);font-size:.9rem;
+  display:flex;flex-direction:column;gap:9px}
+ul.plain li{position:relative;padding-left:17px}
+ul.plain li::before{content:"▸";position:absolute;left:0;color:var(--cyan);opacity:.7}
+ol.crit{margin:0;padding-left:0;list-style:none;counter-reset:c;display:flex;flex-direction:column;gap:11px;
+  font-size:.9rem;color:var(--muted)}
+ol.crit li{position:relative;padding-left:34px;counter-increment:c}
+ol.crit li::before{content:counter(c,decimal-leading-zero);position:absolute;left:0;top:1px;
+  font-family:var(--mono);font-size:.74rem;color:var(--hot);border:1px solid var(--line2);
+  padding:1px 5px;letter-spacing:.04em}
 ol.crit b{color:var(--ink);font-weight:600}
-.addr{font-family:var(--mono);font-size:.76rem;word-break:break-all;color:var(--muted)}
-.note{font-size:.82rem;color:var(--muted);font-family:var(--mono)}
-pre.cmd{background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:12px 14px;overflow-x:auto;font-family:var(--mono);font-size:.76rem;margin:0;color:var(--ink)}
-footer{border-top:1px solid var(--line);padding-block:30px;color:var(--muted);font-size:.84rem}
+
+.addr{font-family:var(--mono);font-size:.74rem;word-break:break-all;color:var(--muted)}
+.note{font-size:.8rem;color:var(--muted);font-family:var(--mono);line-height:1.6}
+pre.cmd{background:#04070a;border:1px solid var(--line);padding:14px 15px;overflow-x:auto;
+  font-family:var(--mono);font-size:.74rem;margin:0;color:var(--cyan);line-height:1.75}
+footer{border-top:1px solid var(--line);padding-block:32px;color:var(--muted);font-size:.83rem;position:relative;z-index:1}
 .frow{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
-.stale{opacity:.45}
+.stale{opacity:.4}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
 <header class="top"><div class="topin">
-  <span class="mark">GOJI<span>POWER</span></span>
+  <span class="brand">
+    <img src="assets/goji-logo-96.png" alt="GOJIPOWER" width="34" height="34">
+    <span class="wordmark">GOJI<span>POWER</span></span>
+  </span>
   <button class="chip" id="copyca" title="copy contract address">DYCL…Apump ⧉</button>
   <span class="sp"></span>
+  <span id="uplink"><span class="led"></span><b>uplink</b></span>
   <button class="chip" id="lang">中文</button>
-  <button class="chip" id="theme">◐</button>
 </div></header>
 
 <div class="wrap">
@@ -300,14 +366,24 @@ function applyLang(){
   document.getElementById("lang").textContent = lang==="en" ? "中文" : "EN";
 }
 document.getElementById("lang").addEventListener("click",function(){
-  lang = lang==="en" ? "zh" : "en"; LS("goji.lang",lang); applyLang();
+  lang = lang==="en" ? "zh" : "en"; LS("goji.lang",lang); applyLang(); uplink(null);
 });
 
-var th=LS("goji.theme"); if(th) document.documentElement.setAttribute("data-theme",th);
-document.getElementById("theme").addEventListener("click",function(){
-  var next = document.documentElement.getAttribute("data-theme")==="dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme",next); LS("goji.theme",next);
-});
+// 本站只有一个视觉世界（深色终端），不提供主题切换——浅色下的 HUD 两头不靠。
+// 背景与每个颜色都显式画出，所以它在任何宿主底色上都成立。
+
+// 上行状态灯：反映实时取数真的成没成。
+// 永远是绿的灯是装饰，会变红的灯才是信息——这是本站每个 HUD 元素的准入条件。
+var UP=document.getElementById("uplink"), upOk=0, upBad=0;
+function uplink(ok){
+  if(ok===true) upOk++; else if(ok===false) upBad++;
+  UP.className = upBad ? (upOk ? "live" : "down") : (upOk ? "live" : "");
+  UP.querySelector("b").textContent =
+    (upBad && !upOk) ? (lang==="zh"?"链路中断":"uplink down")
+    : upBad          ? (lang==="zh"?"部分可用":"partial")
+    : upOk           ? (lang==="zh"?"链路正常":"uplink live")
+                     : (lang==="zh"?"连接中":"linking");
+}
 
 document.getElementById("copyca").addEventListener("click",function(){
   var b=this;
@@ -343,6 +419,7 @@ fetch("https://api.dexscreener.com/latest/dex/tokens/"+MINT)
    document.getElementById("mMcap").textContent=fmtU(mcap);
    document.getElementById("mPool").textContent=fmtU(pool);
    document.getElementById("mRatio").textContent=(mcap/pool).toFixed(0)+"×";
+   uplink(true);
 
    var rows=[1e6,1e7,2.5e7,1.2e8,4e8];
    document.getElementById("impact").innerHTML=rows.map(function(x){
@@ -353,6 +430,7 @@ fetch("https://api.dexscreener.com/latest/dex/tokens/"+MINT)
    }).join("");
  })
  .catch(function(){
+   uplink(false);
    ["mPrice","mMcap","mPool","mRatio"].forEach(markStale);
    document.getElementById("impact").innerHTML='<tr><td colspan="5" class="note" style="text-align:left">'+
      (lang==="zh"?"实时数据暂时取不到；上方为 2026-10-02 实测值，请用第 06 节的命令核对。":
@@ -371,13 +449,15 @@ rpc("getTokenAccountBalance",[TREASURY_ATA]).then(function(d){
   var v=d&&d.result&&d.result.value;
   if(!v) throw new Error("no value");
   document.getElementById("mTreas").textContent=fmtN(parseFloat(v.uiAmountString));
-}).catch(function(){ markStale("mTreas"); });
+  uplink(true);
+}).catch(function(){ markStale("mTreas"); uplink(false); });
 
 rpc("getAccountInfo",[MINT,{encoding:"jsonParsed"}]).then(function(d){
   var i=d&&d.result&&d.result.value&&d.result.value.data.parsed.info;
   if(!i) throw new Error("no value");
   document.getElementById("mMint").textContent = i.mintAuthority===null ? "null" : "SET";
-}).catch(function(){ markStale("mMint"); });
+  uplink(true);
+}).catch(function(){ markStale("mMint"); uplink(false); });
 
 applyLang();
 </script>
