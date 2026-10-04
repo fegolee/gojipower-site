@@ -461,10 +461,13 @@ function markStale(id){
   cell.classList.add("stale");
 }
 
-rpc("getTokenAccountBalance",[TREASURY_ATA]).then(function(d){
-  var v=d&&d.result&&d.result.value;
-  if(!v) throw new Error("no value");
-  document.getElementById("mTreas").textContent=fmtN(parseFloat(v.uiAmountString));
+// 用 getAccountInfo 读金库余额，不用 getTokenAccountBalance。
+// 2026-10-04 实测：publicnode 把 getTokenAccountBalance 与 getTokenSupply 归为
+// 「indexed 请求」，要付费 token（403）；而 getAccountInfo 免费，返回的是同一个数。
+rpc("getAccountInfo",[TREASURY_ATA,{encoding:"jsonParsed"}]).then(function(d){
+  var i=d&&d.result&&d.result.value&&d.result.value.data.parsed.info;
+  if(!i||!i.tokenAmount) throw new Error("no value");
+  document.getElementById("mTreas").textContent=fmtN(parseFloat(i.tokenAmount.uiAmountString));
   uplink(true);
 }).catch(function(){ markStale("mTreas"); uplink(false); });
 
