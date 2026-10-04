@@ -145,6 +145,16 @@ pre.cmd{background:#04070a;border:1px solid var(--line);padding:14px 15px;overfl
 footer{border-top:1px solid var(--line);padding-block:32px;color:var(--muted);font-size:.83rem;position:relative;z-index:1}
 .frow{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
 .stale{opacity:.4}
+
+/* 窄屏：页眉收成一行。
+   让位的是合约地址按钮——它在页脚有完整文本，是工具；
+   而字标是身份，状态灯是信息，这两个留下。 */
+@media (max-width:480px){
+  #copyca{display:none}
+  #uplink b{display:none}
+  .topin{gap:9px;padding:8px 20px}
+  .brand img{width:30px;height:30px}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
