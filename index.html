@@ -355,7 +355,12 @@ open https://www.binance.com/copy-trading/lead-details/4975390574377459456</pre>
 <script>
 var MINT="DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump";
 var TREASURY_ATA="22Uz4CKMeKS84Z4t7dmWsmZMTUS1XK4wSpJkZzq8T3S2";
-var RPC="https://api.mainnet-beta.solana.com";
+// 2026-10-04 从本站 origin 实测：api.mainnet-beta.solana.com 对浏览器请求返回 403
+// （从终端 curl 正常，所以第 06 节那些命令依然成立）。drpc 400、ankr 403、public-rpc 拒绝。
+// 只有 publicnode 可用，所以它排第一，后面两个作为将来可能恢复时的回退。
+var RPCS=["https://solana-rpc.publicnode.com",
+          "https://api.mainnet-beta.solana.com",
+          "https://solana.drpc.org"];
 var LS=function(k,v){try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){return null}};
 
 var lang=LS("goji.lang")||"en";
@@ -395,10 +400,21 @@ document.getElementById("copyca").addEventListener("click",function(){
 var fmtU=function(n,d){return "$"+n.toLocaleString("en-US",{minimumFractionDigits:d||0,maximumFractionDigits:d||0})};
 var fmtN=function(n){return Math.round(n).toLocaleString("en-US")};
 
+// 逐个试，第一个真正给出 result 的算数。
+// 不要用 r.ok 判断：403 的响应体也能 .json() 成功，而里面没有 result——
+// 「拿到了一个 JSON」和「拿到了答案」是两件事。
 function rpc(method,params){
-  return fetch(RPC,{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({jsonrpc:"2.0",id:1,method:method,params:params})})
-    .then(function(r){return r.json()});
+  var body=JSON.stringify({jsonrpc:"2.0",id:1,method:method,params:params});
+  var i=0;
+  function next(){
+    if(i>=RPCS.length) return Promise.reject(new Error("all RPC endpoints failed"));
+    var u=RPCS[i++];
+    return fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:body})
+      .then(function(r){ return r.json(); })
+      .then(function(j){ if(!j || j.result===undefined) throw new Error("no result"); return j; })
+      .catch(next);
+  }
+  return next();
 }
 
 fetch("https://api.dexscreener.com/latest/dex/tokens/"+MINT)
