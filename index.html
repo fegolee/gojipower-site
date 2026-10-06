@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="GOJIPOWER is an access credential: a wallet signature is the login, holding the token or the Genesis NFT is the eligibility check, and settlement stays with the service provider.">
 <title>GOJIPOWER Access</title>
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -157,6 +163,8 @@ footer{border-top:1px solid var(--line);padding-block:32px;color:var(--muted);fo
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
+</head>
+<body>
 
 <header class="top"><div class="topin">
   <span class="brand">
@@ -459,6 +467,7 @@ function applyLang(){
     var t=el.getAttribute("data-"+lang); if(t) el.textContent=t;
   });
   document.getElementById("lang").textContent = lang==="en" ? "中文" : "EN";
+  document.documentElement.lang = lang==="zh" ? "zh-Hans" : "en";
 }
 document.getElementById("lang").addEventListener("click",function(){
   lang = lang==="en" ? "zh" : "en"; LS("goji.lang",lang); applyLang(); uplink(null);
@@ -598,3 +607,5 @@ rpc("getAccountInfo",[MINT,{encoding:"jsonParsed"}]).then(function(d){
 
 applyLang();
 </script>
+</body>
+</html>
