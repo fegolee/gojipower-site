@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="The Genesis NFT is the permanent half of the GOJIPOWER gate: bought once in SOL, held forever, and the only part of the system that collects outside cash. Mint counts are read live from the chain.">
+<title>Genesis NFT · GOJIPOWER</title>
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+<header class="top"><div class="topin">
+  <a class="brand" href="/" style="text-decoration:none;color:inherit">
+    <img src="assets/goji-logo-96.png" alt="GOJIPOWER" width="34" height="34">
+    <span class="wordmark">GOJI<span>POWER</span></span>
+  </a>
+  <button class="chip" id="copyca" title="copy contract address">DYCL…Apump ⧉</button>
+  <span class="sp"></span>
+  <span id="uplink"><span class="led"></span><b>uplink</b></span>
+  <button class="chip" id="lang">中文</button>
+</div></header>
+<nav class="subnav"><div class="subin"><a href="/" data-en="Overview" data-zh="总览">Overview</a><a href="/nft" aria-current="page" data-en="Genesis NFT" data-zh="Genesis NFT">Genesis NFT</a><a href="/event" data-en="Events" data-zh="活动">Events</a><a href="/dexfans" data-en="dexfans" data-zh="dexfans">dexfans</a></div></nav>
+
+<div class="wrap">
+
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="Genesis NFT · Solana · Metaplex Core" data-zh="Genesis NFT · Solana · Metaplex Core">Genesis NFT · Solana · Metaplex Core</span>
+    <h1 data-en="The half of the key you only buy once." data-zh="这把钥匙里只买一次的那一半。">The half of the key you only buy once.</h1>
+  </div>
+  <p class="lede" data-en="The gate checks two things: a wallet signature for who you are, and a holding for whether you are allowed in. The token satisfies the second one as long as you hold it. The NFT satisfies it permanently — bought once, in SOL, and then it is simply yours. It is also the only part of this system that collects outside cash, and that payment never passes through the token&#39;s thin pool." data-zh="这道门检查两件事：钱包签名解决「你是谁」，持仓解决「能不能进」。代币在你持有期间满足第二条；NFT 则是永久满足——用 SOL 一次性买下，然后它就是你的。它同时也是这套系统里唯一真正收外部现金的那一环，而那笔钱完全不经过代币那个很薄的池子。">The gate checks two things: a wallet signature for who you are, and a holding for whether you are allowed in.</p>
+
+  <div class="board">
+    <div class="cell hl"><span class="k" data-en="Minted" data-zh="已铸">Minted</span><span class="v" id="nMinted">4</span><span class="s" data-en="live from the candy machine" data-zh="实时读自 candy machine">live from the candy machine</span></div>
+    <div class="cell"><span class="k" data-en="Mintable now" data-zh="当前可铸">Mintable now</span><span class="v" id="nAvail">1,000</span><span class="s" data-en="first batch, on chain" data-zh="第一批，已上链">first batch, on chain</span></div>
+    <div class="cell"><span class="k" data-en="Collection planned" data-zh="整体计划">Collection planned</span><span class="v">10,000</span><span class="s" data-en="not deployed yet" data-zh="尚未部署">not deployed yet</span></div>
+    <div class="cell"><span class="k" data-en="Bought back with mint money" data-zh="用铸造所得回购">Bought back with mint money</span><span class="v" id="nBuyback">158,037</span><span class="s" data-en="GOJIPOWER · live · still held" data-zh="枚 GOJIPOWER · 实时 · 仍在账上">GOJIPOWER · live · still held</span></div>
+  </div>
+  <p class="note" style="margin-top:12px" data-en="Two of those numbers are both true and easy to confuse: 1,000 is what the deployed candy machine can actually issue today and is read live above; 10,000 is the intended size of the collection and exists only as a plan. Later batches appear here once they are on chain, not before." data-zh="其中两个数都对，但很容易混：1,000 是已部署的 candy machine 今天真能发出的数量，上面那格实时读它；10,000 是整体计划规模，目前只存在于计划里。后续批次会在上链之后才出现在这里，不会提前。">Two of those numbers are both true and easy to confuse.</p>
+  <p style="margin-top:18px"><a href="https://nft.gojipower.xyz" target="_blank" rel="noopener" data-en="Mint at nft.gojipower.xyz →" data-zh="到 nft.gojipower.xyz 铸造 →">Mint at nft.gojipower.xyz →</a></p>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="01 · Where the mint money goes" data-zh="01 · 铸造的钱去了哪">01 · Where the mint money goes</span>
+    <h2 data-en="Three SOL in. Two point nine nine five back into the token." data-zh="进 3 个 SOL，2.995 个回到了代币里。">Three SOL in. Two point nine nine five back into the token.</h2>
+  </div>
+  <p class="lede" data-en="This project states its own ordering plainly: outside cash first, then a thicker pool and public buybacks, then realisable value. The NFT is the only thing that produces the first step. As of 2026-10-06 that loop has run once, end to end, and it is on chain whether or not anyone says so." data-zh="这个项目把自己的顺序写得很明白：先有外部现金，再加厚池子与公开回购，然后可兑现价值才可能上升。而 NFT 是唯一产生第一步的东西。截至 2026-10-06，这个闭环已经完整跑过一次——不管有没有人说，它都在链上。">This project states its own ordering plainly: outside cash first, then a thicker pool and public buybacks, then realisable value.</p>
+  <div class="board">
+    <div class="cell"><span class="k" data-en="In" data-zh="进">In</span><span class="v">3.000</span><span class="s" data-en="SOL · four payments · 2025-12-11 → 2026-02-22" data-zh="SOL · 四笔 · 2025-12-11 → 2026-02-22">SOL · four payments · 2025-12-11 → 2026-02-22</span></div>
+    <div class="cell"><span class="k" data-en="Out" data-zh="出">Out</span><span class="v">2.995</span><span class="s" data-en="SOL · six open-market buys · 2026-09-30 → 10-05" data-zh="SOL · 六笔公开市场买入 · 2026-09-30 → 10-05">SOL · six open-market buys · 2026-09-30 → 10-05</span></div>
+    <div class="cell"><span class="k" data-en="Share of proceeds" data-zh="占收到的全部">Share of proceeds</span><span class="v" style="color:var(--good)">99.8%</span><span class="s" data-en="0.005 SOL left" data-zh="余 0.005 SOL">0.005 SOL left</span></div>
+  </div>
+  <div class="callout">
+    <span class="eyebrow" data-en="And the part that flatters nobody" data-zh="以及不好听的那一半">And the part that flatters nobody</span>
+    <p data-en="Three SOL is not market support. At the price on the day it was about $360, and the tokens bought with it were worth roughly 9% less than that. What it is, is evidence that the pipe is connected: money came in from outside, went back into the token on the open market, and the tokens are still sitting in the account — not burned, not sold. A mechanism that works at $360 is a mechanism. Whether it ever runs at a size that matters depends on whether anyone mints, and four people have." data-zh="三个 SOL 不是市场支撑。按当天的价格大约 $360，而用它买回来的代币比这个数还低约 9%。它是什么？是管子已经接通的证据：钱从外面进来，又在公开市场上回到代币里，而那些代币仍然躺在账户里——没烧、没卖。一个在 $360 这个量级上成立的机制，仍然是一个机制。它会不会跑到有意义的规模，取决于有没有人来铸——目前是四个人。">Three SOL is not market support.</p>
+  </div>
+  <p class="note" style="margin-top:14px" data-en="The flow figures above are a single read taken on 2026-10-06 and are not live. The holding in the board at the top of this page is live — if those tokens ever move, that number moves with them." data-zh="上面这些流水数字是 2026-10-06 的一次性读取，不是实时的。本页顶部那格持仓是实时的——那些代币一旦有动静，这个数就跟着动。">The flow figures above are a single read taken on 2026-10-06 and are not live.</p>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="02 · What you are buying" data-zh="02 · 你买到的是什么">02 · What you are buying</span>
+    <h2 data-en="A pass, and an unrevealed picture" data-zh="一张凭证，和一张还没揭示的图">A pass, and an unrevealed picture</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel"><div class="ph"><h3 data-en="What the pass carries" data-zh="这张凭证带什么">What the pass carries</h3><span class="pill n" data-en="WMDoll collab" data-zh="WMDoll 联名">WMDoll collab</span></div>
+      <ul class="plain">
+        <li data-en="Exclusive WMDoll discounts and long-term holder perks." data-zh="WMDoll 专属折扣与长期持有人权益。">Exclusive WMDoll discounts and long-term holder perks.</li>
+        <li data-en="Permanent eligibility at the gate — a holding that does not have to be topped up or re-checked against a dollar threshold." data-zh="在门口的永久资格——不需要补仓，也不必反复对着一个美元门槛重新校验。">Permanent eligibility at the gate.</li>
+        <li data-en="Minted through an on-chain Candy Machine v3 with whitelist and public guard groups. The mint logic is in the program, not in a spreadsheet." data-zh="通过链上 Candy Machine v3 铸造，含白名单与公开两个 guard 组。铸造逻辑写在程序里，不在某张表格里。">Minted through an on-chain Candy Machine v3.</li>
+      </ul></div>
+    <div class="panel"><div class="ph"><h3 data-en="What it does not carry yet" data-zh="它目前还不带什么">What it does not carry yet</h3><span class="pill w" data-en="Unrevealed" data-zh="未揭示">Unrevealed</span></div>
+      <p data-en="Every item in the deployed batch is currently unrevealed. The metadata gives each one a serial number, a Tier of &quot;Unrevealed&quot; and a Discount of &quot;TBD&quot;, and all of them share one placeholder image. That is the honest state of the art today, and it is said here rather than left for you to find after minting. No reveal date is set." data-zh="已部署批次里的每一枚目前都是未揭示状态。元数据给每枚一个序号，Tier 写的是「Unrevealed」、Discount 写的是「TBD」，而且全部共用同一张占位图。这就是今天美术的真实状态——写在这里，而不是等你铸完自己发现。揭示日期尚未确定。">Every item in the deployed batch is currently unrevealed.</p>
+      <p class="note" style="margin-top:12px" data-en="On-chain the collection is named GojiDolls, symbol GJDOLL. If you look it up in a wallet or a marketplace, that is the name you will see." data-zh="链上这个集合的名字是 GojiDolls，符号 GJDOLL。你在钱包或交易市场里查到的会是这个名字。">On chain the collection is named GojiDolls, symbol GJDOLL.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="shead">
+    <span class="eyebrow" data-en="03 · Check it yourself" data-zh="03 · 自己核对">03 · Check it yourself</span>
+    <h2 data-en="Addresses" data-zh="地址">Addresses</h2>
+  </div>
+  <div class="panel">
+    <p class="addr">candy machine · GhXYjrSQcgKtDQbo2kcDGCtrgNJkv4FWKKzbo2csn2GQ</p>
+    <p class="addr" style="margin-top:7px">collection &nbsp;&nbsp;&nbsp;· 5znqnBGEnEFJB11YsAVN85uPShfu6vXd5Egx9GKoTo58</p>
+    <p class="addr" style="margin-top:7px">treasury &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;· hsXgR17RR3NFD4gSBCSbUR6S31QQVdDwLmh3VbhuEDe</p>
+    <p class="addr" style="margin-top:7px">GOJI account · G7RymqGpUhoG7UbfRdBs8hQw9Tp4ZZVuUoh8tz3Pck6Q</p>
+    <p class="note" style="margin-top:14px" data-en="The treasury is where mint payments land and where the buybacks were signed from; the GOJI account is where the bought-back tokens sit. Both are readable without asking anyone. The mint counter at the top of this page reads itemsRedeemed and itemsAvailable straight out of the candy machine account, which is why it can disagree with this sentence and the candy machine wins." data-zh="金库是铸造付款到账的地方，也是那六笔回购的签名方；GOJI 账户是买回来的代币待着的地方。两个都不需要问任何人就能读。本页顶部那个铸造计数器直接读 candy machine 账户里的 itemsRedeemed 与 itemsAvailable——所以它可以和这句话不一致，那时候以 candy machine 为准。">The treasury is where mint payments land and where the buybacks were signed from.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="frow">
+    <span class="mark">GOJI<span>POWER</span></span>
+    <span class="sp" style="flex:1"></span>
+    <a href="https://x.com/GOJIPOWER" target="_blank" rel="noopener">X</a>
+    <a href="https://t.me/GOJIPOWER_SOL" target="_blank" rel="noopener">Telegram</a>
+    <a href="https://www.binance.com/copy-trading/lead-details/4975390574377459456" target="_blank" rel="noopener">Live account</a>
+    <a href="https://beagle.chat" target="_blank" rel="noopener">Beagle</a>
+  </div>
+  <p class="addr" style="margin-top:14px">DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump</p>
+  <p style="margin-top:10px" data-en="No price target, no return and no forecast is offered anywhere on this page. Nothing here is investment advice. Trading futures, including copy trading, can lose the entire amount committed." data-zh="本页任何位置都不提供价格目标、收益承诺或预测。本页内容不构成投资建议。合约交易（含跟单）可能损失全部投入金额。">No price target, no return and no forecast is offered anywhere on this page. Nothing here is investment advice. Trading futures, including copy trading, can lose the entire amount committed.</p>
+</footer>
+</div>
+<script src="assets/site.js"></script>
+</body>
+</html>
