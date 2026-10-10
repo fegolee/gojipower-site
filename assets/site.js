@@ -209,6 +209,12 @@ function renderPanel(s) {
   var nft = !s.nft || s.nft.held == null
     ? '<span style="color:var(--muted)">' + T("cannot look up", "查不到") + "</span>"
     : s.nft.held ? '<span style="color:var(--good)">' + s.nft.count + "</span>" : T("none", "无");
+  // 持有时把资产地址也显示出来：Core 资产的持有人可以用 getAccountInfo 免费单独核对，
+  // 所以这个数字是可以被验证的 —— 一个光秃秃的「1」没法核对。
+  var nftIds = (s.nft && s.nft.held && s.nft.assets && s.nft.assets.length)
+    ? '<div class="wnote"><span style="color:var(--muted)">' + T("asset", "资产") + "</span><br>" +
+      s.nft.assets.map(function (a) { return '<span class="wmono" style="font-size:.72rem">' + a + "</span>"; }).join("<br>") + "</div>"
+    : "";
   var reach = s.carrierAddress
     ? '<span style="color:var(--good)">' + T("yes", "是") + "</span>"
     : '<span style="color:var(--amber)">' + T("no — needs Beagle sign-in", "否 — 需补 Beagle 登录") + "</span>";
@@ -222,6 +228,7 @@ function renderPanel(s) {
     row(T("meets", "是否达标"), meets) +
     row(T("Genesis NFT", "Genesis NFT"), nft) +
     row(T("reachable", "可触达"), reach) +
+    nftIds +
     (s.readFailed ? '<div class="wnote" style="color:var(--bad)">' + T("read failed", "读取失败") + "<br>" +
       s.readFailed.map(function (f) {
         return typeof f === "string" ? f : f.read + ": " + f.error;
