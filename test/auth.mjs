@@ -137,5 +137,16 @@ const sigY = await signMsg(`${PREFIX}\nhttps://gojipower.xyz\n${nY}`);
 const rY = await walletPost({ request: new Request("https://www.gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: nY, sig: sigY }) }), env });
 t("签 apex 却发到 www → 401（两个 origin 不互通）", rY.status === 401);
 
+// 21-22. vendored 副本必须和 functions/_lib 下的来源一致。
+// 浏览器拿不到 functions/ 目录，所以共用模块在 assets/vendor/ 有一份副本；
+// 「忘了跑 bump-assets.sh」应该是一个会失败的测试，而不是一个靠记性的约定。
+const { readFileSync } = await import("node:fs");
+const root = new URL("..", import.meta.url).pathname;
+for (const f of ["b58.js", "xeddsa.js"]) {
+  const a = readFileSync(root + "functions/_lib/" + f, "utf8");
+  const b = readFileSync(root + "assets/vendor/" + f, "utf8");
+  t(`assets/vendor/${f} 与 functions/_lib/${f} 一致`, a === b, a === b ? "" : "跑 ./bump-assets.sh");
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

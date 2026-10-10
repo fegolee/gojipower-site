@@ -236,8 +236,13 @@ function renderPanel(s) {
     '<div class="wnote">' + T(
       "Holdings are read from the chain, not from anything you typed. Nothing here is stored except the wallet address and the time.",
       "持仓是实时读自链上的，不是你填的。除了钱包地址和时间，这里不存别的。") + "</div>" +
-    '<button class="chip" id="wout" style="margin-top:12px">' + T("Sign out", "退出") + "</button>";
+    (s.needsBeagleSignIn
+      ? '<button class="chip" id="wbeagle" style="margin-top:12px;width:100%">' +
+        T("Link Beagle identity", "补上 Beagle 登录") + "</button>" : "") +
+    '<button class="chip" id="wout" style="margin-top:8px">' + T("Sign out", "退出") + "</button>";
 
+  var link = p.querySelector("#wbeagle");
+  if (link) link.addEventListener("click", beagleSignIn);
   p.querySelector("#wout").addEventListener("click", function () {
     fetch("/api/auth/logout", { method: "POST" }).then(function () { setBtn(null); panel.hidden = true; });
   });
@@ -320,6 +325,44 @@ function signIn() {
       bits.push(T("wallet: ", "钱包：") + wname(wprovider()));
       bits.push(T("step: ", "步骤：") + (address ? "signMessage" : "connect"));
       setBtn(null); walletError(bits.join(" · "));
+    });
+}
+
+// 第二道门。12KB 的 vendored 客户端用动态 import —— 不点就不下载。
+// 版本号由 ./bump-assets.sh 写入：这个域名的浏览器缓存被区域设置改写成 4 小时，
+// 只能靠换 URL 绕过，和 site.js 自己的 ?v= 是同一个道理。
+var BEAGLE_V = "5d8c2761e9";
+function beagleSignIn() {
+  var p = ensurePanel();
+  var btn = p.querySelector("#wbeagle");
+  if (btn) { btn.disabled = true; btn.textContent = T("Opening Beagle\u2026", "正在打开 Beagle…"); }
+  import("/assets/vendor/beagle-connect.js?v=" + BEAGLE_V)
+    .then(function (m) {
+      return fetch("/api/auth/nonce").then(function (r) { return r.json(); })
+        .then(function (n) {
+          if (!n || !n.ok) throw new Error(T("could not get a nonce", "没能取到 nonce"));
+          // signIn 会开一个弹窗：本机装了 Beagle 就走 127.0.0.1:8766，没装则走 app.beagle.chat。
+          return m.signIn({ nonce: n.nonce });
+        });
+    })
+    .then(function (who) {
+      return fetch("/api/auth/decent", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(who),
+      });
+    })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+    .then(function (x) {
+      if (x.status !== 200 || !x.j.ok) throw new Error((x.j && x.j.message) || ("HTTP " + x.status));
+      return fetch("/api/auth/session").then(function (r) { return r.json(); }).then(renderPanel);
+    })
+    .catch(function (e) {
+      try { console.error("[gojipower] beagle sign-in failed:", e); } catch (_) {}
+      var m = (e && (e.code === 4001 || /reject|denied|cancel|closed/i.test(e.message || "")))
+        ? T("Beagle sign-in was cancelled.", "你取消了 Beagle 登录。")
+        : (e && e.message) || String(e);
+      walletError(m);
     });
 }
 

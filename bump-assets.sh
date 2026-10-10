@@ -10,12 +10,22 @@
 # 部署仍然只是复制文件。
 set -e
 cd "$(dirname "$0")"
+# 浏览器拿不到 functions/ 目录，所以共用模块要有一份副本在 assets/vendor/。
+# functions/_lib/ 是唯一的来源，这里只负责拷贝。
+cp functions/_lib/b58.js    assets/vendor/b58.js
+cp functions/_lib/xeddsa.js assets/vendor/xeddsa.js
+
+# vendored 客户端的版本号要先写进 site.js，再算 site.js 自己的哈希 —— 顺序不能反。
+BEAGLE=$(cat assets/vendor/beagle-connect.js assets/vendor/peer-shim.js assets/vendor/b58.js assets/vendor/xeddsa.js | shasum -a 256 | cut -c1-10)
+sed -i '' -E "s/var BEAGLE_V = \"[0-9a-f]+\"/var BEAGLE_V = \"$BEAGLE\"/; s/var BEAGLE_V = \"dev\"/var BEAGLE_V = \"$BEAGLE\"/" assets/site.js
+
 JS=$(shasum -a 256 assets/site.js | cut -c1-10)
 CSS=$(shasum -a 256 assets/site.css | cut -c1-10)
 for f in index.html nft.html event.html dexfans.html 404.html; do
   [ -f "$f" ] || continue
   sed -i '' -E "s#(assets/site\.js)(\?v=[0-9a-f]+)?#\1?v=$JS#g; s#(assets/site\.css)(\?v=[0-9a-f]+)?#\1?v=$CSS#g" "$f"
 done
+echo "beagle   ?v=$BEAGLE"
 echo "site.js  ?v=$JS"
 echo "site.css ?v=$CSS"
 grep -o 'assets/site\.[a-z]*?v=[0-9a-f]*' index.html | sort -u

@@ -1,5 +1,5 @@
 import { json, bad } from "../../_lib/http.js";
-import { kvProblem } from "../../_lib/config.js";
+import { kvProblem, originOf } from "../../_lib/config.js";
 import { b58decode } from "../../_lib/b58.js";
 import { sign, cookie } from "../../_lib/session.js";
 import { tokenBalance, holdsGenesisNft, priceUsd } from "../../_lib/solana.js";
@@ -13,18 +13,6 @@ import { tokenBalance, holdsGenesisNft, priceUsd } from "../../_lib/solana.js";
 //   · decentUserid / carrierAddress 只是客户端自带的未签名回显，永远不作为证明
 const PREFIX = "beagle-meet-wallet";
 
-// origin 由服务端决定，绝不信 body 里传来的那个 —— 对方主动提醒的一条，
-// 也是他们文档里说的「最常见的集成 bug」的另一面。
-//
-// 但不能写死成单个字符串：www.gojipower.xyz 服务的是同一个站，从 www 进来的人
-// 签的是 www，和写死的 apex 对不上，会永远验不过。所以取**请求真正到达的 host**
-// （Worker 里 request.url 的 host 由 Cloudflare 路由决定，不是请求方能伪造的头），
-// 再对白名单校验。Origin / Referer 这类请求头是客户端可控的，一律不用。
-const ALLOWED_ORIGINS = new Set([
-  "https://gojipower.xyz",
-  "https://www.gojipower.xyz",
-]);
-
 const SESSION_TTL = 60 * 60 * 24 * 7;
 
 export async function onRequestPost({ request, env }) {
@@ -35,10 +23,8 @@ export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch { return bad("bad-json", "body must be JSON"); }
 
-  const ORIGIN = new URL(request.url).origin;
-  if (!ALLOWED_ORIGINS.has(ORIGIN)) {
-    return bad("bad-origin", `sign-in is not served on ${ORIGIN}`, 400);
-  }
+  const ORIGIN = originOf(request);
+  if (!ORIGIN) return bad("bad-origin", `sign-in is not served on ${new URL(request.url).origin}`, 400);
 
   const { walletType, address, nonce, sig } = body || {};
   if (walletType !== "solana") {
