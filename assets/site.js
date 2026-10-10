@@ -149,6 +149,26 @@ function b58enc(buf) {
 function wprovider() {
   return (window.phantom && window.phantom.solana) || window.solana || window.solflare || null;
 }
+function wname(pv) {
+  if (!pv) return "none";
+  var n = [];
+  if (pv.isPhantom) n.push("Phantom");
+  if (pv.isSolflare) n.push("Solflare");
+  if (pv.isBackpack) n.push("Backpack");
+  if (pv.isBraveWallet) n.push("Brave");
+  if (pv.isGlow) n.push("Glow");
+  return n.length ? n.join("/") : "unknown";
+}
+// 钱包之间 signMessage 的签名不一致：有的接受第二个显示编码参数，有的传了就炸
+// （"Unexpected error"）。所以先按两个参数试，失败再退回一个参数。
+function signWith(pv, msg) {
+  return Promise.resolve()
+    .then(function () { return pv.signMessage(msg, "utf8"); })
+    .catch(function (e) {
+      if (e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || ""))) throw e;
+      return pv.signMessage(msg);
+    });
+}
 var shortAddr = function (a) { return a ? a.slice(0, 4) + "…" + a.slice(-4) : ""; };
 var T = function (en, zh) { return lang === "zh" ? zh : en; };
 
@@ -247,7 +267,7 @@ function signIn() {
       if (!n || !n.ok) throw new Error(T("could not get a nonce from the server", "没能从服务端取到 nonce"));
       // 签的是本页真实的 origin；服务端按它自己收到请求的 host 校验，不看这里传什么。
       var msg = new TextEncoder().encode("beagle-meet-wallet\n" + location.origin + "\n" + n.nonce);
-      return pv.signMessage(msg, "utf8").then(function (out) {
+      return signWith(pv, msg).then(function (out) {
         var raw = out && out.signature ? out.signature : out;
         var sig = typeof raw === "string" ? raw : b58enc(raw);
         return fetch("/api/auth/wallet", {
@@ -264,11 +284,23 @@ function signIn() {
       setBtn(x.j); renderPanel(x.j);
     })
     .catch(function (e) {
+      try { console.error("[gojipower] sign-in failed:", e); } catch (_) {}
       // 4001 是用户在钱包里点了拒绝，那不是错误，是一个决定。
-      var m = (e && (e.code === 4001 || /reject/i.test(e.message || "")))
-        ? T("Signature declined in the wallet.", "你在钱包里取消了签名。")
-        : (e && e.message) || String(e);
-      setBtn(null); walletError(m);
+      if (e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || ""))) {
+        setBtn(null);
+        walletError(T("Signature declined in the wallet.", "你在钱包里取消了签名。"));
+        return;
+      }
+      // 钱包抛的往往只有一句「Unexpected error」，不带上下文就无从查起。
+      // 把能拿到的都显示出来：是哪个钱包、哪一步、错误码。
+      var bits = [];
+      if (e && e.message) bits.push(e.message);
+      if (e && e.code !== undefined) bits.push("code " + e.code);
+      if (e && e.name && e.name !== "Error") bits.push(e.name);
+      if (!bits.length) bits.push(String(e));
+      bits.push(T("wallet: ", "钱包：") + wname(wprovider()));
+      bits.push(T("step: ", "步骤：") + (address ? "signMessage" : "connect"));
+      setBtn(null); walletError(bits.join(" · "));
     });
 }
 
