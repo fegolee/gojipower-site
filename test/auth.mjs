@@ -104,5 +104,22 @@ t("GOJI_KV 填成文本 → 503 并说清原因，不是 500", rCfg.status === 5
 const rCfg2 = await nonceGet2({ env: {} });
 t("完全没配 → 503", rCfg2.status === 503);
 
+// 15-17. 直读路径：用已知持仓的地址验证 ATA 推导 + getAccountInfo 真的读得出非零余额。
+// 测试钱包余额是 0，光靠它证明不了读取是对的 —— 0 也可能是读失败的伪装。
+const { tokenBalance } = await import(`${B}/_lib/solana.js`);
+const { deriveAta } = await import(`${B}/_lib/ata.js`);
+
+const KNOWN_OWNER = "hsXgR17RR3NFD4gSBCSbUR6S31QQVdDwLmh3VbhuEDe";   // NFT 金库
+const KNOWN_ATA = "G7RymqGpUhoG7UbfRdBs8hQw9Tp4ZZVuUoh8tz3Pck6Q";     // 链上查到的实际地址
+const d = await deriveAta(KNOWN_OWNER, "DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump");
+t("ATA 推导命中链上实际地址（bump 不是 255，曲线判断确实在起作用）", d.address === KNOWN_ATA, `bump=${d.bump}`);
+
+const known = await tokenBalance(KNOWN_OWNER, {});
+t("已知持仓地址读出非零余额", known.amount > 0 && known.exists === true, `amount=${known.amount}`);
+
+// 一个确定没有这个代币的地址：系统程序。应当是「存在地读出 0」，不是报错。
+const none = await tokenBalance("11111111111111111111111111111111", {});
+t("无持仓地址 → 0 且 exists=false（账户不存在≠读取失败）", none.amount === 0 && none.exists === false);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

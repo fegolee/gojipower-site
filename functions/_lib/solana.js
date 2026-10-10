@@ -1,19 +1,22 @@
-// 链上读取。注意这是在 Worker 里跑，不是浏览器 ——
-// CLAUDE.md 里记的「api.mainnet-beta 对站点 origin 返回 403」只发生在浏览器，
-// 服务端请求正常。但 publicnode 会对受限方法返回 {"result":[]} 加 HTTP 200，
-// 那是个「自信的错误事实」，所以这里按顺序试、并且只认有 result 的响应。
-const RPCS = [
-  "https://api.mainnet-beta.solana.com",
-  "https://solana-rpc.publicnode.com",
-  "https://solana.drpc.org",
-];
+import { deriveAta } from "./ata.js";
+
+// 从 Worker 里实测（2026-10-10，/api/diag/rpc）：
+//   api.mainnet-beta.solana.com  403  "Your IP or provider is blocked from this endpoint"
+//   solana-rpc.publicnode.com    200  可用，约 220ms        ← 唯一能用的
+//   drpc 400（免费不含此链）/ ankr 403（要 key）/ onfinality 429 / omniatech 429
+// 所以 publicnode 排第一。SOLANA_RPC 环境变量可以覆盖（例如将来上 Helius）。
+const DEFAULT_RPCS = ["https://solana-rpc.publicnode.com"];
 
 export const MINT = "DYCLLejhtfyCDUY8ygBx7YuwfcdaRzLo7nHHVGdApump";
 export const COLLECTION = "5znqnBGEnEFJB11YsAVN85uPShfu6vXd5Egx9GKoTo58";
 
-async function rpc(method, params, endpoints = RPCS) {
+function endpoints(env) {
+  return env && env.SOLANA_RPC ? [env.SOLANA_RPC, ...DEFAULT_RPCS] : DEFAULT_RPCS;
+}
+
+async function rpc(method, params, urls) {
   let lastErr;
-  for (const url of endpoints) {
+  for (const url of urls) {
     try {
       const r = await fetch(url, {
         method: "POST",
@@ -21,54 +24,49 @@ async function rpc(method, params, endpoints = RPCS) {
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
       });
       const j = await r.json();
-      // 「拿到了一个 JSON」和「拿到了答案」是两件事：403 的响应体一样能解析
-      if (!j || j.result === undefined) { lastErr = new Error(`${url}: no result`); continue; }
+      // 「拿到了一个 JSON」和「拿到了答案」是两件事：403 与 -32602 的响应体一样能解析。
+      if (!j || j.result === undefined) { lastErr = new Error(j?.error?.message || `${url}: no result`); continue; }
       return j.result;
     } catch (e) { lastErr = e; }
   }
   throw lastErr || new Error("all RPC endpoints failed");
 }
 
-// 某个钱包持有多少 GOJIPOWER。一个 owner 可能有多个 token account，要加总。
-export async function tokenBalance(owner) {
-  const res = await rpc("getTokenAccountsByOwner", [owner, { mint: MINT }, { encoding: "jsonParsed" }]);
-  const accounts = (res && res.value) || [];
-  let total = 0;
-  for (const a of accounts) {
-    const amt = a?.account?.data?.parsed?.info?.tokenAmount?.uiAmount;
-    if (typeof amt === "number") total += amt;
-  }
-  return { amount: total, accounts: accounts.length };
+// 读余额。不用 getTokenAccountsByOwner —— publicnode 把按 owner 索引的方法列为付费
+// （"Indexed requests require a personal token"）。改为自己推导 ATA 再 getAccountInfo，
+// 后者免费且返回同一个数。换的是方法，不是端点。
+//
+// 局限，写出来而不是藏着：只看关联代币账户。如果有人把币放在非 ATA 的代币账户里，
+// 这里会读成 0。对门控来说这是保守方向（误拒而非误放），但它是个真实的误拒。
+export async function tokenBalance(address, env) {
+  const { address: ata } = await deriveAta(address, MINT);
+  const res = await rpc("getAccountInfo", [ata, { encoding: "jsonParsed" }], endpoints(env));
+  // value === null 是「这个账户不存在」，也就是确确实实持有 0 —— 这跟「读取失败」不同，
+  // 后者会从 rpc() 抛出去。「查不到」和「不存在」必须分开。
+  if (!res || res.value === null) return { amount: 0, ata, exists: false };
+  const info = res.value?.data?.parsed?.info;
+  const amt = info?.tokenAmount?.uiAmount;
+  if (info?.mint !== MINT) throw new Error("ata holds a different mint");
+  return { amount: typeof amt === "number" ? amt : 0, ata, exists: true };
 }
 
-// Genesis NFT 是 Metaplex Core 资产，不是 SPL token —— getTokenAccountsByOwner 看不见它。
-// 要列出某个钱包持有的 Core 资产需要 DAS 索引（getAssetsByOwner），公共 RPC 不提供。
-// 所以这一条在配置了 DAS_RPC 之前是「未知」，而不是「没有」：
-// 「查不到」和「不存在」是两件事，不能把前者当后者返回。
-export async function holdsGenesisNft(owner, dasRpc) {
-  if (!dasRpc) return { held: null, reason: "no-das-endpoint" };
-  try {
-    const res = await rpc("getAssetsByOwner", [{ ownerAddress: owner, page: 1, limit: 1000 }], [dasRpc]);
-    const items = (res && res.items) || [];
-    const n = items.filter((it) => {
-      const g = it?.grouping || [];
-      return g.some((x) => x.group_key === "collection" && x.group_value === COLLECTION);
-    }).length;
-    return { held: n > 0, count: n };
-  } catch (e) {
-    return { held: null, reason: "das-read-failed" };
-  }
+// Genesis NFT 是 Metaplex Core 资产，不是 SPL token，按 owner 列出来需要 DAS 索引，
+// 公共 RPC 不提供。没有 DAS_RPC 时返回 held: null 而不是 false ——
+// 「查不到」不等于「没有」。
+export async function holdsGenesisNft(address, env) {
+  const das = env && env.DAS_RPC;
+  if (!das) return { held: null, reason: "no-das-endpoint" };
+  const res = await rpc("getAssetsByOwner", [{ ownerAddress: address, page: 1, limit: 1000 }], [das]);
+  const items = (res && res.items) || [];
+  const n = items.filter((it) => (it?.grouping || []).some((g) => g.group_key === "collection" && g.group_value === COLLECTION)).length;
+  return { held: n > 0, count: n };
 }
 
-// 代币的美元价格。门槛是以美元计的（05 号预注册冻结为 $25 等值），
-// 所以要价格才能判定；取不到价格时返回 null，由调用方决定怎么表述。
 export async function priceUsd() {
-  try {
-    const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${MINT}`, {
-      headers: { "user-agent": "gojipower-site/1.0" },
-    });
-    const j = await r.json();
-    const p = j?.pairs?.[0]?.priceUsd;
-    return p ? Number(p) : null;
-  } catch { return null; }
+  const r = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${MINT}`, {
+    headers: { "user-agent": "gojipower-site/1.0" },
+  });
+  const j = await r.json();
+  const p = j?.pairs?.[0]?.priceUsd;
+  return p ? Number(p) : null;
 }

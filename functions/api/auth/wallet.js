@@ -60,15 +60,20 @@ export async function onRequestPost({ request, env }) {
 
   // 到这里：这个钱包的控制权已经证明。下面查它持有什么 —— 这一半是我们自己的事，
   // 对方文档也是这么说的：gate on what you can look up yourself on-chain.
-  let balance = null, nft = { held: null, reason: "not-checked" }, price = null, readFailed = false;
-  try {
-    const [b, n, p] = await Promise.all([
-      tokenBalance(address),
-      holdsGenesisNft(address, env.DAS_RPC),
-      priceUsd(),
-    ]);
-    balance = b; nft = n; price = p;
-  } catch { readFailed = true; }
+  // 三个读取互不拖累。先前写成一个 Promise.all，而 tokenBalance 是唯一会抛的那个 ——
+  // 它一失败，本来成功的价格和 NFT 结果一起变成 null。线上第一次真跑就是这么空的。
+  const settled = await Promise.allSettled([
+    tokenBalance(address, env),
+    holdsGenesisNft(address, env),
+    priceUsd(),
+  ]);
+  const [bRes, nRes, pRes] = settled;
+  const balance = bRes.status === "fulfilled" ? bRes.value : null;
+  const nft = nRes.status === "fulfilled" ? nRes.value : { held: null, reason: "read-failed" };
+  const price = pRes.status === "fulfilled" ? pRes.value : null;
+  const readFailed = settled
+    .map((r, i) => (r.status === "rejected" ? ["balance", "nft", "price"][i] : null))
+    .filter(Boolean);
 
   const usd = balance && price != null ? balance.amount * price : null;
   // 门槛数值来自环境变量，刻意没有默认值：
@@ -115,7 +120,7 @@ export async function onRequestPost({ request, env }) {
     threshold: minUsd,
     meets,
     nft,
-    readFailed,
+    readFailed: readFailed.length ? readFailed : null,
     // 网页端用 Phantom 只会有 address，拿不到可达地址；要能联系到人还得补一次
     // decent-auth。Beagle 的 iOS/Android 走钱包门时自带这两个字段，一个门就够。
     needsBeagleSignIn: !payload.carrierAddress,
