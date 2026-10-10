@@ -1,12 +1,8 @@
-# index.html 是 max-age=0、每次校验，但 assets/ 默认被缓存 4 小时。
-# 于是改完前端，HTML 立刻更新而 JS/CSS 最长 4 小时还是旧的 —— 新 HTML 配旧脚本。
-# 2026-10-10 实测踩到：服务器上明明有新代码，浏览器跑的是旧副本，
-# 而 curl 不走浏览器缓存，所以验证时完全看不见。
-#
-# no-cache 不是「不缓存」，是「缓存但每次必须回源校验」。配合 ETag，
-# 没变就是一个 304，几百字节。这个站很小，正确性比省那点流量值钱。
+# Pages caches /assets/* for 14400s while index.html revalidates every time.
+# Since the stylesheet and script were extracted, that meant new HTML could run
+# against a script up to four hours old. curl never shows it: no browser cache.
+# no-cache means revalidate, not don't store -- with the ETag, unchanged is a 304.
 /assets/site.js
   Cache-Control: no-cache
-
 /assets/site.css
   Cache-Control: no-cache
