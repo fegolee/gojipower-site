@@ -75,8 +75,15 @@ export async function onRequestPost({ request, env }) {
   // 对方文档也是这么说的：gate on what you can look up yourself on-chain.
   // 三个读取互不拖累。先前写成一个 Promise.all，而 tokenBalance 是唯一会抛的那个 ——
   // 它一失败，本来成功的价格和 NFT 结果一起变成 null。线上第一次真跑就是这么空的。
+  // 余额是这一步唯一真正重要的读取，所以失败重试一次 ——
+  // 只有一个可用的 RPC 端点（见 _lib/solana.js），没有别的节点可以回退。
+  const withRetry = async (fn) => {
+    try { return await fn(); }
+    catch (e) { await new Promise((r) => setTimeout(r, 250)); return fn(); }
+  };
+
   const settled = await Promise.allSettled([
-    tokenBalance(address, env),
+    withRetry(() => tokenBalance(address, env)),
     holdsGenesisNft(address, env),
     priceUsd(),
   ]);
@@ -84,8 +91,12 @@ export async function onRequestPost({ request, env }) {
   const balance = bRes.status === "fulfilled" ? bRes.value : null;
   const nft = nRes.status === "fulfilled" ? nRes.value : { held: null, reason: "read-failed" };
   const price = pRes.status === "fulfilled" ? pRes.value : null;
+  // 只说「balance 失败了」而不说为什么，等于把下一个人困在原地 ——
+  // 我自己就因为这个多花了一轮。把 reason 带出来。
   const readFailed = settled
-    .map((r, i) => (r.status === "rejected" ? ["balance", "nft", "price"][i] : null))
+    .map((r, i) => (r.status === "rejected"
+      ? { read: ["balance", "nft", "price"][i], error: String((r.reason && r.reason.message) || r.reason).slice(0, 160) }
+      : null))
     .filter(Boolean);
 
   const usd = balance && price != null ? balance.amount * price : null;

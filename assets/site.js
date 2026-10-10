@@ -222,7 +222,10 @@ function renderPanel(s) {
     row(T("meets", "是否达标"), meets) +
     row(T("Genesis NFT", "Genesis NFT"), nft) +
     row(T("reachable", "可触达"), reach) +
-    (s.readFailed ? '<div class="wnote" style="color:var(--bad)">' + T("read failed: ", "读取失败：") + s.readFailed.join(", ") + "</div>" : "") +
+    (s.readFailed ? '<div class="wnote" style="color:var(--bad)">' + T("read failed", "读取失败") + "<br>" +
+      s.readFailed.map(function (f) {
+        return typeof f === "string" ? f : f.read + ": " + f.error;
+      }).join("<br>") + "</div>" : "") +
     '<div class="wnote">' + T(
       "Holdings are read from the chain, not from anything you typed. Nothing here is stored except the wallet address and the time.",
       "持仓是实时读自链上的，不是你填的。除了钱包地址和时间，这里不存别的。") + "</div>" +
