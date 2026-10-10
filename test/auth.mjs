@@ -94,5 +94,15 @@ t("篡改会话 → 未登录", s2.signedIn === false);
 const s3 = await (await sessionGet({ request: req(), env })).json();
 t("无 cookie → 未登录", s3.signedIn === false);
 
+// 13. 把 GOJI_KV 配成文本变量（面板上最容易点错的那一步）
+const { onRequestGet: nonceGet2 } = await import(`${B}/api/auth/nonce.js`);
+const rCfg = await nonceGet2({ env: { GOJI_KV: "some-namespace-id", SESSION_SECRET: "x" } });
+const jCfg = await rCfg.json();
+t("GOJI_KV 填成文本 → 503 并说清原因，不是 500", rCfg.status === 503 && /not a KV namespace binding/.test(jCfg.message));
+
+// 14. 完全没配
+const rCfg2 = await nonceGet2({ env: {} });
+t("完全没配 → 503", rCfg2.status === 503);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

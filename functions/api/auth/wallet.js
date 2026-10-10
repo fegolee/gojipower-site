@@ -1,4 +1,5 @@
 import { json, bad } from "../../_lib/http.js";
+import { kvProblem } from "../../_lib/config.js";
 import { b58decode } from "../../_lib/b58.js";
 import { sign, cookie } from "../../_lib/session.js";
 import { tokenBalance, holdsGenesisNft, priceUsd } from "../../_lib/solana.js";
@@ -19,7 +20,8 @@ const ORIGIN = "https://gojipower.xyz";
 const SESSION_TTL = 60 * 60 * 24 * 7;
 
 export async function onRequestPost({ request, env }) {
-  if (!env.GOJI_KV) return bad("not-configured", "KV binding GOJI_KV is missing", 503);
+  const kvErr = kvProblem(env);
+  if (kvErr) return bad("not-configured", kvErr, 503);
   if (!env.SESSION_SECRET) return bad("not-configured", "SESSION_SECRET is missing", 503);
 
   let body;
