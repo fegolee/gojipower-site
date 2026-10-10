@@ -47,38 +47,38 @@ const setCookie = r1.headers.get("set-cookie") || "";
 t("下发 HttpOnly+Secure+SameSite 会话", /HttpOnly/.test(setCookie) && /Secure/.test(setCookie) && /SameSite=Lax/.test(setCookie));
 
 // 3. 同一个 nonce 重放
-const r2 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n1.nonce, sig: sig1 }) }), env });
+const r2 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n1.nonce, sig: sig1 }) }), env });
 t("nonce 重放 → 401 bad-nonce", r2.status === 401 && (await r2.json()).code === "bad-nonce");
 
 // 4. 签了别的 origin
 const n2 = (await (await nonceGet({ env })).json()).nonce;
 const sigEvil = await signMsg(`${PREFIX}\nhttps://evil.example\n${n2}`);
-const r3 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n2, sig: sigEvil }) }), env });
+const r3 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n2, sig: sigEvil }) }), env });
 t("错误 origin → 401", r3.status === 401 && (await r3.json()).code === "bad-signature");
 
 // 5. body 里塞一个假 origin 想绕过（服务端写死，应无效）
 const n3 = (await (await nonceGet({ env })).json()).nonce;
 const sigEvil2 = await signMsg(`${PREFIX}\nhttps://evil.example\n${n3}`);
-const r4 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n3, sig: sigEvil2, origin: "https://evil.example" }) }), env });
+const r4 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n3, sig: sigEvil2, origin: "https://evil.example" }) }), env });
 t("body 里传 origin 无法覆盖服务端写死的 → 401", r4.status === 401);
 
 // 6. 错误前缀
 const n4 = (await (await nonceGet({ env })).json()).nonce;
 const sigPrefix = await signMsg(`decent-auth\n${ORIGIN}\n${n4}`);
-const r5 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n4, sig: sigPrefix }) }), env });
+const r5 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n4, sig: sigPrefix }) }), env });
 t("错误 prefix（decent-auth 当钱包门用）→ 401", r5.status === 401);
 
 // 7. 未知 nonce
-const r6 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: "never-issued", sig: sig1 }) }), env });
+const r6 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: "never-issued", sig: sig1 }) }), env });
 t("伪造 nonce → 401", r6.status === 401);
 
 // 8. 以太坊明确拒绝
-const r7 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "ethereum", address, nonce: "x", sig: "y" }) }), env });
+const r7 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "ethereum", address, nonce: "x", sig: "y" }) }), env });
 t("walletType=ethereum → 400 明确拒绝", r7.status === 400 && (await r7.json()).code === "unsupported-wallet");
 
 // 9. 字段名写成 signature（文档里的错名）应当被拒
 const n5 = (await (await nonceGet({ env })).json()).nonce;
-const r8 = await walletPost({ request: new Request("https://x/", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n5, signature: await signMsg(`${PREFIX}\n${ORIGIN}\n${n5}`) }) }), env });
+const r8 = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: n5, signature: await signMsg(`${PREFIX}\n${ORIGIN}\n${n5}`) }) }), env });
 t("用 signature 而非 sig → 400 缺字段", r8.status === 400 && (await r8.json()).code === "missing-fields");
 
 // 10. 会话 cookie 能被读回
@@ -120,6 +120,22 @@ t("已知持仓地址读出非零余额", known.amount > 0 && known.exists === t
 // 一个确定没有这个代币的地址：系统程序。应当是「存在地读出 0」，不是报错。
 const none = await tokenBalance("11111111111111111111111111111111", {});
 t("无持仓地址 → 0 且 exists=false（账户不存在≠读取失败）", none.amount === 0 && none.exists === false);
+
+// 18-20. origin 白名单
+const nW = (await (await nonceGet({ env })).json()).nonce;
+const sigW = await signMsg(`${PREFIX}\nhttps://www.gojipower.xyz\n${nW}`);
+const rW = await walletPost({ request: new Request("https://www.gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: nW, sig: sigW }) }), env });
+t("从 www 进来、签 www → 200（否则 www 的访客永远登不上）", rW.status === 200);
+
+const nX = (await (await nonceGet({ env })).json()).nonce;
+const sigX = await signMsg(`${PREFIX}\nhttps://gojipower-site.pages.dev\n${nX}`);
+const rX = await walletPost({ request: new Request("https://gojipower-site.pages.dev/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: nX, sig: sigX }) }), env });
+t("非白名单 host（pages.dev）→ 400 bad-origin", rX.status === 400 && (await rX.json()).code === "bad-origin");
+
+const nY = (await (await nonceGet({ env })).json()).nonce;
+const sigY = await signMsg(`${PREFIX}\nhttps://gojipower.xyz\n${nY}`);
+const rY = await walletPost({ request: new Request("https://www.gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: nY, sig: sigY }) }), env });
+t("签 apex 却发到 www → 401（两个 origin 不互通）", rY.status === 401);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

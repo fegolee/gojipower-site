@@ -126,3 +126,170 @@ if(document.getElementById("mMint")) rpc("getAccountInfo",[MINT,{encoding:"jsonP
 applyLang();
 
 applyLang();
+
+/* ───────────────── 钱包门：连接 → 签名 → 读持仓 ─────────────────
+   零依赖。钱包插件自己注入 signMessage，签名验证在 Pages Function 里做。
+   按钮是用 JS 注入的，不写进 5 个页面的 HTML —— 没有 JS 的话这个按钮
+   本来也不能用，与其留一个点不动的死按钮，不如不渲染。                      */
+
+var B58A = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function b58enc(buf) {
+  var bytes = Array.prototype.slice.call(buf), digits = [];
+  for (var i = 0; i < bytes.length; i++) {
+    var c = bytes[i];
+    for (var j = 0; j < digits.length; j++) { c += digits[j] << 8; digits[j] = c % 58; c = (c / 58) | 0; }
+    while (c > 0) { digits.push(c % 58); c = (c / 58) | 0; }
+  }
+  var out = "";
+  for (var k = 0; k < bytes.length && bytes[k] === 0; k++) out += "1";
+  for (var m = digits.length - 1; m >= 0; m--) out += B58A[digits[m]];
+  return out;
+}
+
+function wprovider() {
+  return (window.phantom && window.phantom.solana) || window.solana || window.solflare || null;
+}
+var shortAddr = function (a) { return a ? a.slice(0, 4) + "…" + a.slice(-4) : ""; };
+var T = function (en, zh) { return lang === "zh" ? zh : en; };
+
+var panel, wbtn;
+
+function ensurePanel() {
+  if (panel) return panel;
+  panel = document.createElement("div");
+  panel.id = "wpanel";
+  panel.hidden = true;
+  document.body.appendChild(panel);
+  document.addEventListener("click", function (e) {
+    if (panel.hidden) return;
+    if (panel.contains(e.target) || (wbtn && wbtn.contains(e.target))) return;
+    panel.hidden = true;
+  });
+  return panel;
+}
+
+function row(k, v, cls) {
+  return '<div class="wrow"><span class="wk">' + k + '</span><span class="wv' + (cls ? " " + cls : "") + '">' + v + "</span></div>";
+}
+
+function renderPanel(s) {
+  var p = ensurePanel();
+  if (!s || !s.signedIn && !s.wallet) {
+    p.innerHTML = '<div class="whead">' + T("Not signed in", "未登录") + "</div>";
+    p.hidden = false; return;
+  }
+  var unknown = '<span style="color:var(--muted)">' + T("unknown", "未知") + "</span>";
+  var bal = s.balance == null ? unknown : fmtN(s.balance);
+  var usd = s.usd == null ? unknown : "$" + s.usd.toFixed(2);
+  var thr = s.threshold == null ? T("not set", "未设定") : "$" + s.threshold;
+  var meets = s.meets == null
+    ? '<span style="color:var(--amber)">' + T("not determined", "未判定") + "</span>"
+    : s.meets ? '<span style="color:var(--good)">' + T("yes", "是") + "</span>"
+              : '<span style="color:var(--bad)">' + T("no", "否") + "</span>";
+  var nft = !s.nft || s.nft.held == null
+    ? '<span style="color:var(--muted)">' + T("cannot look up", "查不到") + "</span>"
+    : s.nft.held ? '<span style="color:var(--good)">' + s.nft.count + "</span>" : T("none", "无");
+  var reach = s.carrierAddress
+    ? '<span style="color:var(--good)">' + T("yes", "是") + "</span>"
+    : '<span style="color:var(--amber)">' + T("no — needs Beagle sign-in", "否 — 需补 Beagle 登录") + "</span>";
+
+  p.innerHTML =
+    '<div class="whead">' + T("Signed in", "已登录") + "</div>" +
+    row(T("wallet", "钱包"), '<span class="wmono">' + shortAddr(s.wallet) + "</span>") +
+    row("GOJIPOWER", bal) +
+    row(T("value", "估值"), usd) +
+    row(T("threshold", "门槛"), thr) +
+    row(T("meets", "是否达标"), meets) +
+    row(T("Genesis NFT", "Genesis NFT"), nft) +
+    row(T("reachable", "可触达"), reach) +
+    (s.readFailed ? '<div class="wnote" style="color:var(--bad)">' + T("read failed: ", "读取失败：") + s.readFailed.join(", ") + "</div>" : "") +
+    '<div class="wnote">' + T(
+      "Holdings are read from the chain, not from anything you typed. Nothing here is stored except the wallet address and the time.",
+      "持仓是实时读自链上的，不是你填的。除了钱包地址和时间，这里不存别的。") + "</div>" +
+    '<button class="chip" id="wout" style="margin-top:12px">' + T("Sign out", "退出") + "</button>";
+
+  p.querySelector("#wout").addEventListener("click", function () {
+    fetch("/api/auth/logout", { method: "POST" }).then(function () { setBtn(null); panel.hidden = true; });
+  });
+  p.hidden = false;
+}
+
+function setBtn(s) {
+  if (!wbtn) return;
+  if (s && s.signedIn) { wbtn.textContent = shortAddr(s.wallet); wbtn.classList.add("on"); }
+  else { wbtn.textContent = T("Connect", "连接钱包"); wbtn.classList.remove("on"); }
+  wbtn.disabled = false;
+}
+
+function walletError(msg) {
+  var p = ensurePanel();
+  p.innerHTML = '<div class="whead" style="color:var(--bad)">' + T("Sign-in failed", "登录失败") + "</div>" +
+    '<div class="wnote">' + msg + "</div>";
+  p.hidden = false;
+}
+
+function signIn() {
+  var pv = wprovider();
+  if (!pv) {
+    walletError(T("No Solana wallet found in this browser. Phantom, Solflare and Backpack all work.",
+                  "这个浏览器里没有检测到 Solana 钱包。Phantom、Solflare、Backpack 都可以。"));
+    return;
+  }
+  wbtn.disabled = true;
+  wbtn.textContent = T("Signing…", "签名中…");
+  var address;
+  Promise.resolve(pv.connect())
+    .then(function (res) {
+      address = (res && res.publicKey ? res.publicKey : pv.publicKey).toString();
+      return fetch("/api/auth/nonce").then(function (r) { return r.json(); });
+    })
+    .then(function (n) {
+      if (!n || !n.ok) throw new Error(T("could not get a nonce from the server", "没能从服务端取到 nonce"));
+      // 签的是本页真实的 origin；服务端按它自己收到请求的 host 校验，不看这里传什么。
+      var msg = new TextEncoder().encode("beagle-meet-wallet\n" + location.origin + "\n" + n.nonce);
+      return pv.signMessage(msg, "utf8").then(function (out) {
+        var raw = out && out.signature ? out.signature : out;
+        var sig = typeof raw === "string" ? raw : b58enc(raw);
+        return fetch("/api/auth/wallet", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ walletType: "solana", address: address, nonce: n.nonce, sig: sig }),
+        });
+      });
+    })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+    .then(function (x) {
+      if (x.status !== 200 || !x.j.ok) throw new Error((x.j && x.j.message) || ("HTTP " + x.status));
+      x.j.signedIn = true;
+      setBtn(x.j); renderPanel(x.j);
+    })
+    .catch(function (e) {
+      // 4001 是用户在钱包里点了拒绝，那不是错误，是一个决定。
+      var m = (e && (e.code === 4001 || /reject/i.test(e.message || "")))
+        ? T("Signature declined in the wallet.", "你在钱包里取消了签名。")
+        : (e && e.message) || String(e);
+      setBtn(null); walletError(m);
+    });
+}
+
+(function initWallet() {
+  var bar = document.querySelector(".topin");
+  var langBtn = document.getElementById("lang");
+  if (!bar || !langBtn) return;
+  wbtn = document.createElement("button");
+  wbtn.className = "chip wchip";
+  wbtn.id = "wallet";
+  wbtn.textContent = T("Connect", "连接钱包");
+  bar.insertBefore(wbtn, langBtn);
+  wbtn.addEventListener("click", function () {
+    if (wbtn.classList.contains("on")) {
+      var p = ensurePanel();
+      if (!p.hidden) { p.hidden = true; return; }
+      fetch("/api/auth/session").then(function (r) { return r.json(); }).then(renderPanel);
+    } else signIn();
+  });
+  // 已有会话就直接显示，省掉一次重复签名
+  fetch("/api/auth/session").then(function (r) { return r.json(); }).then(function (s) {
+    if (s && s.signedIn) setBtn(s);
+  }).catch(function () {});
+})();
