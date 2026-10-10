@@ -291,8 +291,17 @@ function signIn() {
         walletError(T("Signature declined in the wallet.", "你在钱包里取消了签名。"));
         return;
       }
-      // 钱包抛的往往只有一句「Unexpected error」，不带上下文就无从查起。
-      // 把能拿到的都显示出来：是哪个钱包、哪一步、错误码。
+      // Phantom 在 connect 里抛 -32603「Unexpected error」而且不弹窗，实测是扩展
+      // 内部出错而不是站点被拒：消息通道本身是通的（同一时刻 request() 能收到正常
+      // 的业务错误）。最常见的两种是钱包被锁、或者扩展里还没有钱包。
+      // 原样显示「Unexpected error」等于把人卡死在一句没有信息的话上。
+      if (e && e.code === -32603) {
+        setBtn(null);
+        walletError(T(
+          "The wallet extension errored internally before showing a prompt (code -32603). Open " + wname(wprovider()) + " from the toolbar, unlock it, make sure an account exists, then try again. The page reached the extension fine, so this is not a site permission.",
+          wname(wprovider()) + " 扩展在弹窗之前内部出错了（code -32603）。请点开工具栏里的钱包图标，解锁它、确认里面已经有账户，然后再试一次。页面和扩展之间是通的，所以不是站点授权的问题。"));
+        return;
+      }
       var bits = [];
       if (e && e.message) bits.push(e.message);
       if (e && e.code !== undefined) bits.push("code " + e.code);
