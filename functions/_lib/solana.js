@@ -56,10 +56,17 @@ export async function tokenBalance(address, env) {
 export async function holdsGenesisNft(address, env) {
   const das = env && env.DAS_RPC;
   if (!das) return { held: null, reason: "no-das-endpoint" };
-  const res = await rpc("getAssetsByOwner", [{ ownerAddress: address, page: 1, limit: 1000 }], [das]);
+  // DAS 的 params 是**对象**，不是数组 —— 普通 JSON-RPC 方法是数组，这一族不是。
+  const res = await rpc("getAssetsByOwner", { ownerAddress: address, page: 1, limit: 1000 }, [das]);
   const items = (res && res.items) || [];
-  const n = items.filter((it) => (it?.grouping || []).some((g) => g.group_key === "collection" && g.group_value === COLLECTION)).length;
-  return { held: n > 0, count: n };
+  const mine = items.filter((it) => {
+    if ((it?.grouping || []).some((g) => g.group_key === "collection" && g.group_value === COLLECTION)) return true;
+    // 不同索引器对 Core 资产的字段不完全一致，留一条回退，但只认明确等于本集合的。
+    return it?.collection === COLLECTION || it?.collection?.key === COLLECTION;
+  });
+  // 带上资产地址：Core 资产的持有人可以用免费的 getAccountInfo 单独复核，
+  // 所以这个答案是可以被独立验证的，不必只靠索引器自己说。
+  return { held: mine.length > 0, count: mine.length, assets: mine.map((a) => a.id).slice(0, 10) };
 }
 
 export async function priceUsd() {
