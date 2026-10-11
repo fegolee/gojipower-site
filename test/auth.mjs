@@ -173,5 +173,26 @@ const rC = await walletPost({ request: new Request("https://gojipower.xyz/api/au
 const jC = await rC.json();
 t("没绑过就不恢复（不会凭空出现身份）", jC.decentUserid === null && jC.needsBeagleSignIn === true);
 
+// 26-28. 刷新页面（session 端点）也要能补上绑定。
+// 这是实测卡住的那一条：只在钱包门修的话，已经登录的人刷新多少次都修不好，
+// 因为刷新读的是现有 cookie，而那里面本来就没有身份。
+const { sign: signSess } = await import(`${B}/_lib/session.js`);
+const nowS = Math.floor(Date.now() / 1000);
+const walletOnlyCookie = await signSess(
+  { v: 1, wallet: address, proven: ["wallet"], iat: nowS, exp: nowS + 3600 }, env.SESSION_SECRET);
+
+let sNo = await (await sessionGet({ request: req({ cookie: `goji_session=${walletOnlyCookie}` }), env })).json();
+t("没有绑定时，session 如实说还需要 Beagle 登录", sNo.needsBeagleSignIn === true && sNo.decentUserid === null);
+
+await KV.put(`bind:wallet:${address}`, JSON.stringify({
+  decentUserid: "BVuiTvzuNTscma9uFZVy9auMb4doc64X6Qu5eaUNAzkU",
+  carrierAddress: "Q5M2Hr7BtLHNz3GV5C3AEXwzBUyA4yaJfc1wJNepxDteG9tvXTaC",
+  t: new Date().toISOString(),
+}));
+let sYes = await (await sessionGet({ request: req({ cookie: `goji_session=${walletOnlyCookie}` }), env })).json();
+t("有绑定时，**仅刷新**就补上可达地址", sYes.needsBeagleSignIn === false && !!sYes.carrierAddress);
+t("两道门都记上", JSON.stringify(sYes.proven) === JSON.stringify(["wallet", "decent"]), JSON.stringify(sYes.proven));
+await KV.delete(`bind:wallet:${address}`);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

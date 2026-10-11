@@ -1,5 +1,5 @@
 import { json, bad } from "../../_lib/http.js";
-import { kvProblem, originOf } from "../../_lib/config.js";
+import { kvProblem, originOf, hydrateBinding } from "../../_lib/config.js";
 import { b58decode } from "../../_lib/b58.js";
 import { sign, cookie } from "../../_lib/session.js";
 import { evaluate } from "../../_lib/gate.js";
@@ -73,19 +73,13 @@ export async function onRequestPost({ request, env }) {
   const minUsd = g.thresholdUsd, meets = g.meets;
   const readFailed = g.readFailed;
 
-  // 这个钱包以前绑过 Beagle 身份的话，把它恢复进新会话。
-  //
-  // 先前这里每次都从零构造 payload，于是**重连一次钱包就把 Beagle 链接丢了** ——
-  // 面板又显示「补上 Beagle 登录」，用户点下去看到的是自己的身份弹窗，
-  // 而「订阅研报」按钮根本不出现。绑定一直在 KV 里，只是登录时没去读。
-  //
-  // 恢复的是**我们自己在服务端存的、当初验过签的**记录，不是请求体里传来的东西，
-  // 所以它仍然是被证明过的，不是用户说了算的。
-  let bound = null;
-  try {
-    const raw = await env.GOJI_KV.get(`bind:wallet:${address}`);
-    if (raw) bound = JSON.parse(raw);
-  } catch { /* 读不到就当没绑过，用户可以再走一次 Beagle 门 */ }
+  // Beagle iOS/Android 走钱包门时会自带这两个字段（未签名的回显）；
+  // 网页端 Phantom 不会，这时用服务端存的绑定补上。
+  const bound = await hydrateBinding(env, address, {
+    decentUserid: (typeof body.decentUserid === "string" ? body.decentUserid : null)
+      || (typeof body.userid === "string" ? body.userid : null),
+    carrierAddress: typeof body.carrierAddress === "string" ? body.carrierAddress : null,
+  });
 
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -94,12 +88,9 @@ export async function onRequestPost({ request, env }) {
     // 未签名的回显字段：存下来是为了以后能联系到人，但绝不当作身份证明。
     // Beagle iOS/Android 走钱包门时会自带这两个字段（未签名的回显）；
     // 网页端 Phantom 不会，这时用服务端存的绑定补上。
-    decentUserid: (typeof body.decentUserid === "string" ? body.decentUserid : null)
-      || (typeof body.userid === "string" ? body.userid : null)
-      || (bound && bound.decentUserid) || null,
-    carrierAddress: (typeof body.carrierAddress === "string" ? body.carrierAddress : null)
-      || (bound && bound.carrierAddress) || null,
-    proven: bound && bound.decentUserid ? ["wallet", "decent"] : ["wallet"],
+    decentUserid: bound.decentUserid || null,
+    carrierAddress: bound.carrierAddress || null,
+    proven: bound.decentUserid ? ["wallet", "decent"] : ["wallet"],
     iat: now,
     exp: now + SESSION_TTL,
   };

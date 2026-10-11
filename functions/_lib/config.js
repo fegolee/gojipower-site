@@ -31,3 +31,26 @@ export const BRIEF_AGENT = {
   userid: "BVuiTvzuNTscma9uFZVy9auMb4doc64X6Qu5eaUNAzkU",
   name: "GojiPower Briefs",
 };
+
+// 从服务端存的绑定补齐会话里的 Beagle 身份。
+//
+// 只在钱包门做这件事是不够的：已经登录的人**刷新页面走的是 session 端点**，
+// 读的是现有 cookie，里面本来就没有身份，于是刷新多少次都修不好 ——
+// 实测就是这么卡住的。两个端点都要补。
+//
+// 补进来的是**我们自己在验过 XEdDSA 签名之后写下的记录**，不是客户端传的。
+export async function hydrateBinding(env, wallet, have) {
+  if (have && have.decentUserid && have.carrierAddress) return have;
+  try {
+    const raw = await env.GOJI_KV.get(`bind:wallet:${wallet}`);
+    if (!raw) return have;
+    const b = JSON.parse(raw);
+    return {
+      decentUserid: (have && have.decentUserid) || b.decentUserid || null,
+      carrierAddress: (have && have.carrierAddress) || b.carrierAddress || null,
+      restored: true,
+    };
+  } catch {
+    return have;   // 读不到就维持现状，用户还可以手动走一次 Beagle 门
+  }
+}
