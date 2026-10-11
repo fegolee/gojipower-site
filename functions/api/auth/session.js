@@ -21,6 +21,7 @@ export async function onRequestGet({ request, env }) {
   const restored = !!(bound && bound.restored);
   const decentUserid = (bound && bound.decentUserid) || null;
   const carrierAddress = (bound && bound.carrierAddress) || null;
+  const uiOriginV = (bound && bound.uiOrigin) || null;
   const proven = decentUserid ? ["wallet", "decent"] : (payload.proven || ["wallet"]);
 
   const g = await evaluate(payload.wallet, env);
@@ -38,6 +39,7 @@ export async function onRequestGet({ request, env }) {
     wallet: payload.wallet,
     decentUserid,
     carrierAddress,
+    uiOrigin: uiOriginV,
     proven,
     expiresAt: payload.exp,
     needsBeagleSignIn: !carrierAddress,

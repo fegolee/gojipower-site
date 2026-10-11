@@ -25,11 +25,13 @@ export async function onRequestPost({ request, env }) {
 
   const rec = {
     wallet: s.wallet,
+    uiOrigin: s.uiOrigin || null,
     carrierAddress: s.carrierAddress || null,
     t: new Date().toISOString(),
   };
   // 键用 decentUserid：好友请求到达时我们只认得出这个。
   await env.GOJI_KV.put(`sub:briefs:${s.decentUserid}`, JSON.stringify(rec));
 
-  return json({ ok: true, agent: BRIEF_AGENT, subscribed: rec.t });
+  // 把登录时那个 Beagle 的 origin 带回去，前端加好友时钉死用它。
+  return json({ ok: true, agent: BRIEF_AGENT, subscribed: rec.t, uiOrigin: s.uiOrigin || null });
 }

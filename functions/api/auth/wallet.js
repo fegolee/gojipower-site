@@ -90,6 +90,7 @@ export async function onRequestPost({ request, env }) {
     // 网页端 Phantom 不会，这时用服务端存的绑定补上。
     decentUserid: bound.decentUserid || null,
     carrierAddress: bound.carrierAddress || null,
+    uiOrigin: bound.uiOrigin || null,
     proven: bound.decentUserid ? ["wallet", "decent"] : ["wallet"],
     iat: now,
     exp: now + SESSION_TTL,
@@ -116,6 +117,7 @@ export async function onRequestPost({ request, env }) {
     wallet: address,
     decentUserid: payload.decentUserid,
     carrierAddress: payload.carrierAddress,
+    uiOrigin: bound.uiOrigin || null,
     proven: payload.proven,
     balance,
     priceUsd: price,

@@ -69,11 +69,22 @@ export async function onRequestPost({ request, env }) {
   // 所以作为「去哪找这个人」是可用的 —— 仍然不作为身份证明。
   const carrierAddress = typeof body.address === "string" ? body.address : null;
 
+  // 记下**这一次登录实际是哪个 Beagle 应答的**。
+  //
+  // beagle-connect 的 pickUiOrigin() 每次都重新探测本机端口（1200ms），谁先答应用谁。
+  // 一个人可能同时有本机 Beagle 和网页版两个不同身份：实测用户在 app.beagle.chat
+  // 以 `fego` 登录，随后加好友却走了 127.0.0.1:8766 的 `fego-air` —— 两个 userid 不同，
+  // 订阅记在一个名下、好友请求从另一个来，推送 Agent 会把它当陌生人忽略。
+  // 所以把 origin 钉下来，加好友时用同一个。
+  const uiOrigin = typeof body.uiOrigin === "string" && /^https?:\/\/[\w.:-]+$/.test(body.uiOrigin)
+    ? body.uiOrigin : null;
+
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     ...current,
     decentUserid: userid,
     carrierAddress,
+    uiOrigin,
     name: typeof body.name === "string" ? body.name.slice(0, 64) : null,
     proven: Array.from(new Set([...(current.proven || []), "decent"])),
     iat: now,
@@ -89,7 +100,7 @@ export async function onRequestPost({ request, env }) {
   try {
     await env.GOJI_KV.put(`auth:${record.t}:${nonce}`, JSON.stringify(record));
     // 绑定关系自己存，两个方向都存：按钱包找人，和按 Beagle 身份找钱包。
-    await env.GOJI_KV.put(`bind:wallet:${current.wallet}`, JSON.stringify({ decentUserid: userid, carrierAddress, t: record.t }));
+    await env.GOJI_KV.put(`bind:wallet:${current.wallet}`, JSON.stringify({ decentUserid: userid, carrierAddress, uiOrigin, t: record.t }));
     await env.GOJI_KV.put(`bind:decent:${userid}`, JSON.stringify({ wallet: current.wallet, carrierAddress, t: record.t }));
   } catch { /* 记录失败不该把已经验过签的用户挡在外面 */ }
 
@@ -98,6 +109,7 @@ export async function onRequestPost({ request, env }) {
     wallet: current.wallet,
     decentUserid: userid,
     carrierAddress,
+    uiOrigin,
     proven: payload.proven,
     needsBeagleSignIn: !carrierAddress,
   }, 200, { "set-cookie": cookie(next, SESSION_TTL) });

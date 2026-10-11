@@ -40,7 +40,7 @@ export const BRIEF_AGENT = {
 //
 // 补进来的是**我们自己在验过 XEdDSA 签名之后写下的记录**，不是客户端传的。
 export async function hydrateBinding(env, wallet, have) {
-  if (have && have.decentUserid && have.carrierAddress) return have;
+  if (have && have.decentUserid && have.carrierAddress && have.uiOrigin) return have;
   try {
     const raw = await env.GOJI_KV.get(`bind:wallet:${wallet}`);
     if (!raw) return have;
@@ -48,6 +48,8 @@ export async function hydrateBinding(env, wallet, have) {
     return {
       decentUserid: (have && have.decentUserid) || b.decentUserid || null,
       carrierAddress: (have && have.carrierAddress) || b.carrierAddress || null,
+      // 登录时是哪个 Beagle 应答的，加好友要用同一个，否则可能换成另一个身份。
+      uiOrigin: (have && have.uiOrigin) || b.uiOrigin || null,
       restored: true,
     };
   } catch {

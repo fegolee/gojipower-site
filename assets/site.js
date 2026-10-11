@@ -273,6 +273,7 @@ function subscribeBriefs() {
   var p = ensurePanel();
   var btn = p.querySelector("#wsub");
   if (btn) { btn.disabled = true; btn.textContent = T("Checking\u2026", "核对中…"); }
+  var stop = null;
   // 先登记（服务端会当场复查持仓），再让钱包/Beagle 发好友请求。
   // 反过来的话，不达标的人会先发出一个我们随后要拒掉的请求。
   fetch("/api/briefs/subscribe", { method: "POST" })
@@ -281,13 +282,21 @@ function subscribeBriefs() {
       if (x.status !== 200 || !x.j.ok) throw new Error((x.j && x.j.message) || ("HTTP " + x.status));
       if (btn) btn.textContent = T("Opening Beagle\u2026", "正在打开 Beagle…");
       return import("/assets/vendor/beagle-connect.js?v=" + BEAGLE_V).then(function (m) {
-        return m.addFriend({ address: x.j.agent.address, name: x.j.agent.name });
+        // 钉死登录时实际应答的那个 Beagle。不钉的话 pickUiOrigin() 会重新探测，
+        // 可能换成另一个身份 —— 实测发生过：登录是 app.beagle.chat 的 fego，
+        // 加好友却成了本机的 fego-air，订阅和好友请求从此对不上号。
+        var opts = { address: x.j.agent.address, name: x.j.agent.name };
+        if (x.j.uiOrigin) opts.origins = [x.j.uiOrigin];
+        stop = waiting(T("Sending the friend request", "正在发出好友请求"), 120);
+        return m.addFriend(opts);
       });
     })
     .then(function () {
+      if (stop) stop();
       return fetch("/api/auth/session").then(function (r) { return r.json(); }).then(renderPanel);
     })
     .catch(function (e) {
+      if (stop) stop();
       try { console.error("[gojipower] subscribe failed:", e); } catch (_) {}
       var m = (e && /reject|denied|cancel|closed/i.test(e.message || ""))
         ? T("Cancelled in Beagle. You are registered; press again to send the friend request.",
