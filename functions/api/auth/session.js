@@ -1,6 +1,6 @@
 import { json } from "../../_lib/http.js";
 import { verify, readCookie } from "../../_lib/session.js";
-import { tokenBalance, holdsGenesisNft, priceUsd } from "../../_lib/solana.js";
+import { evaluate } from "../../_lib/gate.js";
 
 // 重开面板时要能看到和登录当时同样的内容。先前这里只回会话字段、不读链，
 // 于是已登录状态下再打开面板，余额和 NFT 会显示成 unknown ——
@@ -11,23 +11,8 @@ export async function onRequestGet({ request, env }) {
   const payload = token ? await verify(token, env.SESSION_SECRET) : null;
   if (!payload) return json({ ok: true, signedIn: false });
 
-  const settled = await Promise.allSettled([
-    tokenBalance(payload.wallet, env),
-    holdsGenesisNft(payload.wallet, env),
-    priceUsd(),
-  ]);
-  const [bRes, nRes, pRes] = settled;
-  const balance = bRes.status === "fulfilled" ? bRes.value : null;
-  const nft = nRes.status === "fulfilled" ? nRes.value : { held: null, reason: "read-failed" };
-  const price = pRes.status === "fulfilled" ? pRes.value : null;
-  const readFailed = settled
-    .map((r, i) => (r.status === "rejected"
-      ? { read: ["balance", "nft", "price"][i], error: String((r.reason && r.reason.message) || r.reason).slice(0, 160) }
-      : null))
-    .filter(Boolean);
-
-  const usd = balance && price != null ? balance.amount * price : null;
-  const minUsd = env.GATE_MIN_USD ? Number(env.GATE_MIN_USD) : null;
+  // 和 /api/gate、钱包门共用同一份求值 —— 面板看到的和第三方查到的必须是同一个答案。
+  const g = await evaluate(payload.wallet, env);
 
   return json({
     ok: true, signedIn: true,
@@ -39,12 +24,13 @@ export async function onRequestGet({ request, env }) {
     needsBeagleSignIn: !payload.carrierAddress,
     // 持仓是**此刻**重新读的，不是登录那一刻的快照 —— 持仓会变，
     // 把旧数字当现状展示正是这个站反对的事。
-    balance: balance ? balance.amount : null,
-    priceUsd: price,
-    usd,
-    threshold: minUsd,
-    meets: minUsd == null || usd == null ? null : usd >= minUsd,
-    nft,
-    readFailed: readFailed.length ? readFailed : null,
+    balance: g.balance,
+    priceUsd: g.priceUsd,
+    usd: g.usd,
+    threshold: g.thresholdUsd,
+    meets: g.meets,
+    by: g.by,
+    nft: g.nft,
+    readFailed: g.readFailed,
   });
 }

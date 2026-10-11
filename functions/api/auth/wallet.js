@@ -2,7 +2,7 @@ import { json, bad } from "../../_lib/http.js";
 import { kvProblem, originOf } from "../../_lib/config.js";
 import { b58decode } from "../../_lib/b58.js";
 import { sign, cookie } from "../../_lib/session.js";
-import { tokenBalance, holdsGenesisNft, priceUsd } from "../../_lib/solana.js";
+import { evaluate } from "../../_lib/gate.js";
 
 // 钱包门。契约不是从文档抄的 —— 文档没写全，这是 2026-10-10 向 Beagle 那边
 // 核对服务端实现后确认的：
@@ -61,35 +61,17 @@ export async function onRequestPost({ request, env }) {
   // 对方文档也是这么说的：gate on what you can look up yourself on-chain.
   // 三个读取互不拖累。先前写成一个 Promise.all，而 tokenBalance 是唯一会抛的那个 ——
   // 它一失败，本来成功的价格和 NFT 结果一起变成 null。线上第一次真跑就是这么空的。
-  // 余额是这一步唯一真正重要的读取，所以失败重试一次 ——
-  // 只有一个可用的 RPC 端点（见 _lib/solana.js），没有别的节点可以回退。
-  const withRetry = async (fn) => {
-    try { return await fn(); }
-    catch (e) { await new Promise((r) => setTimeout(r, 250)); return fn(); }
-  };
-
-  const settled = await Promise.allSettled([
-    withRetry(() => tokenBalance(address, env)),
-    holdsGenesisNft(address, env),
-    priceUsd(),
-  ]);
-  const [bRes, nRes, pRes] = settled;
-  const balance = bRes.status === "fulfilled" ? bRes.value : null;
-  const nft = nRes.status === "fulfilled" ? nRes.value : { held: null, reason: "read-failed" };
-  const price = pRes.status === "fulfilled" ? pRes.value : null;
-  // 只说「balance 失败了」而不说为什么，等于把下一个人困在原地 ——
-  // 我自己就因为这个多花了一轮。把 reason 带出来。
-  const readFailed = settled
-    .map((r, i) => (r.status === "rejected"
-      ? { read: ["balance", "nft", "price"][i], error: String((r.reason && r.reason.message) || r.reason).slice(0, 160) }
-      : null))
-    .filter(Boolean);
-
-  const usd = balance && price != null ? balance.amount * price : null;
-  // 门槛数值来自环境变量，刻意没有默认值：
-  // 05 号预注册把它冻结为 $25 等值，且「不得中途调整」—— 那是产品决定，不是代码默认值。
-  const minUsd = env.GATE_MIN_USD ? Number(env.GATE_MIN_USD) : null;
-  const meets = minUsd == null || usd == null ? null : usd >= minUsd;
+  // 门槛求值走 _lib/gate.js —— 和对外的 /api/gate 契约是同一份代码。
+  // 两处各算一遍，迟早会算出两个不同的答案。
+  // 余额失败重试一次：它是唯一决定结果的读取，而可用的 RPC 只有一个端点。
+  let g = await evaluate(address, env);
+  if (g.readFailed && g.readFailed.some((f) => f.read === "balance")) {
+    await new Promise((r) => setTimeout(r, 250));
+    g = await evaluate(address, env);
+  }
+  const balance = g.balance, price = g.priceUsd, usd = g.usd, nft = g.nft;
+  const minUsd = g.thresholdUsd, meets = g.meets;
+  const readFailed = g.readFailed;
 
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -110,7 +92,7 @@ export async function onRequestPost({ request, env }) {
     t: new Date().toISOString(), wallet: address, nonce,
     door: "wallet", walletType,
     decentUserid: payload.decentUserid, carrierAddress: payload.carrierAddress,
-    balance: balance?.amount ?? null, usd, meets,
+    balance, usd, meets,
     nft: nft.held, ua: request.headers.get("user-agent") || null,
     cf: request.headers.get("cf-ipcountry") || null,
   };
@@ -124,13 +106,14 @@ export async function onRequestPost({ request, env }) {
     wallet: address,
     decentUserid: payload.decentUserid,
     carrierAddress: payload.carrierAddress,
-    balance: balance?.amount ?? null,
+    balance,
     priceUsd: price,
     usd,
     threshold: minUsd,
     meets,
+    by: g.by,
     nft,
-    readFailed: readFailed.length ? readFailed : null,
+    readFailed,
     // 网页端用 Phantom 只会有 address，拿不到可达地址；要能联系到人还得补一次
     // decent-auth。Beagle 的 iOS/Android 走钱包门时自带这两个字段，一个门就够。
     needsBeagleSignIn: !payload.carrierAddress,
