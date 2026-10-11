@@ -1,5 +1,6 @@
 import { json } from "../../_lib/http.js";
 import { verify, readCookie } from "../../_lib/session.js";
+import { BRIEF_AGENT } from "../../_lib/config.js";
 import { evaluate } from "../../_lib/gate.js";
 
 // 重开面板时要能看到和登录当时同样的内容。先前这里只回会话字段、不读链，
@@ -13,6 +14,14 @@ export async function onRequestGet({ request, env }) {
 
   // 和 /api/gate、钱包门共用同一份求值 —— 面板看到的和第三方查到的必须是同一个答案。
   const g = await evaluate(payload.wallet, env);
+
+  let subscribedAt = null;
+  if (payload.decentUserid) {
+    try {
+      const r = await env.GOJI_KV.get(`sub:briefs:${payload.decentUserid}`);
+      if (r) subscribedAt = JSON.parse(r).t;
+    } catch { /* 读不到就当未订阅，面板会显示订阅按钮 */ }
+  }
 
   return json({
     ok: true, signedIn: true,
@@ -32,5 +41,6 @@ export async function onRequestGet({ request, env }) {
     by: g.by,
     nft: g.nft,
     readFailed: g.readFailed,
+    briefs: { subscribedAt, agent: BRIEF_AGENT },
   });
 }

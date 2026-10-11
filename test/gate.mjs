@@ -10,6 +10,13 @@ const KV = {
   async put(k, v, o) { store.set(k, { v, exp: o?.expirationTtl ? Date.now() + o.expirationTtl * 1000 : null }); },
   async get(k) { const e = store.get(k); if (!e) return null; if (e.exp && Date.now() > e.exp) { store.delete(k); return null; } return e.v; },
   async delete(k) { store.delete(k); },
+  async list({ prefix = "", cursor, limit = 1000 } = {}) {
+    const all = [...store.keys()].filter((k) => k.startsWith(prefix)).sort();
+    const from = cursor ? all.indexOf(cursor) + 1 : 0;
+    const page = all.slice(from, from + limit);
+    const last = page[page.length - 1];
+    return { keys: page.map((name) => ({ name })), list_complete: from + page.length >= all.length, cursor: last };
+  },
 };
 const envWith = (extra = {}) => ({ GOJI_KV: KV, ...extra });
 const req = (ip = "1.2.3.4") => new Request("https://gojipower.xyz/api/gate/x", { headers: { "cf-connecting-ip": ip } });
@@ -65,6 +72,72 @@ for (let i = 0; i < 34; i++) {
 t("同一 IP 超过 30 次/分钟后开始 429", limited > 0, `${limited}/34 被拦`);
 const rOther = await addrGet({ request: req("other-ip"), params: { address: TREASURY }, env: envRl });
 t("限流按 IP 分桶，不误伤别人", rOther.status === 200);
+
+// ---- 研报订阅 ----
+const { onRequestPost: subPost } = await import(`${B}/api/briefs/subscribe.js`);
+const { onRequestGet: rosterGet } = await import(`${B}/api/briefs/roster.js`);
+const { sign: signSession } = await import(`${B}/_lib/session.js`);
+
+const SECRET = "test-secret";
+const envB = (extra = {}) => ({ GOJI_KV: KV, SESSION_SECRET: SECRET, GATE_MIN_USD: "25", ...extra });
+const now = Math.floor(Date.now() / 1000);
+const mkSession = (o) => signSession({ v: 1, iat: now, exp: now + 3600, ...o }, SECRET);
+const postSub = async (cookie, env) => subPost({
+  request: new Request("https://gojipower.xyz/api/briefs/subscribe", {
+    method: "POST", headers: cookie ? { cookie: `goji_session=${cookie}` } : {},
+  }), env: env || envB(),
+});
+
+t("没有会话 → 401", (await postSub(null)).status === 401);
+
+const walletOnly = await mkSession({ wallet: TREASURY, proven: ["wallet"] });
+let r = await postSub(walletOnly);
+t("只过钱包门 → 401 beagle-first（送不到就不登记）",
+  r.status === 401 && (await r.json()).code === "beagle-first");
+
+const DECENT = "BVuiTvzuNTscma9uFZVy9auMb4doc64X6Qu5eaUNAzkU";
+const both = await mkSession({ wallet: TREASURY, decentUserid: DECENT, carrierAddress: "Q5M2Hr7B…", proven: ["wallet", "decent"] });
+r = await postSub(both);
+const jSub = await r.json();
+t("两道门都过且达标 → 200", r.status === 200 && jSub.ok === true, `${r.status} ${jSub.code || ""}`);
+t("返回推送 Agent 的地址", !!(jSub.agent && jSub.agent.address));
+t("订阅写进了 KV", !!(await KV.get(`sub:briefs:${DECENT}`)));
+
+const poor = await mkSession({ wallet: EMPTY, decentUserid: "someone-else", carrierAddress: "x", proven: ["wallet", "decent"] });
+r = await postSub(poor);
+t("不达标 → 403，且不写 KV", r.status === 403 && !(await KV.get("sub:briefs:someone-else")));
+
+// ---- 名册（只列人，零外呼）----
+const { onRequestGet: checkGet } = await import(`${B}/api/briefs/check/[userid].js`);
+const getRoster = (token, env) => rosterGet({
+  request: new Request("https://gojipower.xyz/api/briefs/roster", {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  }), env: env || envB({ AGENT_TOKEN: "tok-abc" }),
+});
+t("没有 token → 401", (await getRoster(null)).status === 401);
+t("token 不对 → 401", (await getRoster("wrong")).status === 401);
+t("长度不同的 token 也拒绝", (await getRoster("tok-abc-extra")).status === 401);
+t("未配 AGENT_TOKEN → 503 而不是放行", (await getRoster("x", envB())).status === 503);
+
+const jr = await (await getRoster("tok-abc")).json();
+t("名册列出订阅者", jr.ok && jr.count >= 1, `count=${jr.count}`);
+// 整个设计里最要紧的一行断言
+t("名册里没有任何钱包地址（token 泄漏也不暴露链上身份）",
+  !JSON.stringify(jr).includes(TREASURY) && !jr.roster.some((x) => "wallet" in x));
+t("名册不做链上判定（那是复查端点的事）", !jr.roster.some((x) => "meets" in x));
+
+// ---- 逐人复查 ----
+const doCheck = (userid, token = "tok-abc") => checkGet({
+  request: new Request("https://gojipower.xyz/api/briefs/check/x", {
+    headers: token ? { authorization: `Bearer ${token}` } : {},
+  }), params: { userid }, env: envB({ AGENT_TOKEN: "tok-abc" }),
+});
+t("复查也要 token", (await doCheck(DECENT, null)).status === 401);
+const jc = await (await doCheck(DECENT)).json();
+t("订阅者复查 → meets true", jc.subscribed === true && jc.meets === true, `meets=${jc.meets}`);
+t("复查结果不含钱包地址", !JSON.stringify(jc).includes(TREASURY));
+const jc2 = await (await doCheck("never-subscribed")).json();
+t("未订阅的人 → subscribed false、meets null", jc2.subscribed === false && jc2.meets === null);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

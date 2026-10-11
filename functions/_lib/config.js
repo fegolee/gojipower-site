@@ -22,3 +22,12 @@ export function originOf(request) {
   const o = new URL(request.url).origin;
   return ALLOWED_ORIGINS.has(o) ? o : null;
 }
+
+// 研报推送 Agent 的 Carrier 地址。写成常量而不是环境变量：它是公开信息
+// （用户就是要把它加成好友），而且极少变——换身份本身就是件大事，值得一次部署。
+// 常量还少一处可以配错的地方。
+export const BRIEF_AGENT = {
+  address: "Q5M2Hr7BtLHNz3GV5C3AEXwzBUyA4yaJfc1wJNepxDteG9tvXTaC",
+  userid: "BVuiTvzuNTscma9uFZVy9auMb4doc64X6Qu5eaUNAzkU",
+  name: "GojiPower Briefs",
+};

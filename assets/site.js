@@ -236,6 +236,7 @@ function renderPanel(s) {
     '<div class="wnote">' + T(
       "Holdings are read from the chain, not from anything you typed. Nothing here is stored except the wallet address and the time.",
       "持仓是实时读自链上的，不是你填的。除了钱包地址和时间，这里不存别的。") + "</div>" +
+    briefsRow(s) +
     (s.needsBeagleSignIn
       ? '<button class="chip" id="wbeagle" style="margin-top:12px;width:100%">' +
         T("Link Beagle identity", "补上 Beagle 登录") + "</button>" : "") +
@@ -243,10 +244,57 @@ function renderPanel(s) {
 
   var link = p.querySelector("#wbeagle");
   if (link) link.addEventListener("click", beagleSignIn);
+  var sub = p.querySelector("#wsub");
+  if (sub) sub.addEventListener("click", subscribeBriefs);
   p.querySelector("#wout").addEventListener("click", function () {
     fetch("/api/auth/logout", { method: "POST" }).then(function () { setBtn(null); panel.hidden = true; });
   });
   p.hidden = false;
+}
+
+// 研报：门后面第一样真东西。需要两道门都过 —— 没有可达地址就送不到人手上。
+function briefsRow(s) {
+  if (s.meets !== true) return "";
+  if (s.briefs && s.briefs.subscribedAt) {
+    return '<div class="wnote" style="color:var(--good)">' +
+      T("Subscribed to the research briefs. They arrive in Beagle.",
+        "已订阅研报。推送会到你的 Beagle 里。") + "</div>";
+  }
+  if (s.needsBeagleSignIn) {
+    return '<div class="wnote">' +
+      T("Research briefs are delivered over Beagle, so linking a Beagle identity comes first.",
+        "研报通过 Beagle 送达，所以要先补上 Beagle 登录。") + "</div>";
+  }
+  return '<button class="chip" id="wsub" style="margin-top:12px;width:100%">' +
+    T("Subscribe to research briefs", "订阅研报") + "</button>";
+}
+
+function subscribeBriefs() {
+  var p = ensurePanel();
+  var btn = p.querySelector("#wsub");
+  if (btn) { btn.disabled = true; btn.textContent = T("Checking\u2026", "核对中…"); }
+  // 先登记（服务端会当场复查持仓），再让钱包/Beagle 发好友请求。
+  // 反过来的话，不达标的人会先发出一个我们随后要拒掉的请求。
+  fetch("/api/briefs/subscribe", { method: "POST" })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+    .then(function (x) {
+      if (x.status !== 200 || !x.j.ok) throw new Error((x.j && x.j.message) || ("HTTP " + x.status));
+      if (btn) btn.textContent = T("Opening Beagle\u2026", "正在打开 Beagle…");
+      return import("/assets/vendor/beagle-connect.js?v=" + BEAGLE_V).then(function (m) {
+        return m.addFriend({ address: x.j.agent.address, name: x.j.agent.name });
+      });
+    })
+    .then(function () {
+      return fetch("/api/auth/session").then(function (r) { return r.json(); }).then(renderPanel);
+    })
+    .catch(function (e) {
+      try { console.error("[gojipower] subscribe failed:", e); } catch (_) {}
+      var m = (e && /reject|denied|cancel|closed/i.test(e.message || ""))
+        ? T("Cancelled in Beagle. You are registered; press again to send the friend request.",
+            "你在 Beagle 里取消了。登记已经做好，再点一次即可发出好友请求。")
+        : (e && e.message) || String(e);
+      walletError(m);
+    });
 }
 
 function setBtn(s) {
