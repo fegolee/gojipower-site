@@ -219,6 +219,21 @@ function renderPanel(s) {
     ? '<span style="color:var(--good)">' + T("yes", "是") + "</span>"
     : '<span style="color:var(--amber)">' + T("no — needs Beagle sign-in", "否 — 需补 Beagle 登录") + "</span>";
 
+  // 把**是哪个 Beagle 身份**拿着这张通行证显示出来，而且显示完整值。
+  //
+  // 一个人可能有好几个 Beagle 身份（本机 CLI 一个、app.beagle.chat 一个）。
+  // 房间那边（goji.fi.chat 的账户页）显示的是 "Beagle userid"，要能和这里逐字符对上；
+  // 缩写成 4r8a…L3eq 的两个不同身份看起来一模一样 —— 这正是之前卡住的原因。
+  var doorName = !s.uiOrigin ? "" :
+    /127\.0\.0\.1|localhost/.test(s.uiOrigin) ? T("Beagle CLI on this computer", "本机 CLI")
+      : /app\.beagle\.chat/.test(s.uiOrigin) ? T("app.beagle.chat", "app.beagle.chat") : s.uiOrigin;
+  var idRow = s.decentUserid
+    ? '<div class="wnote"><span style="color:var(--muted)">' +
+      T("Beagle identity holding the pass", "持证的 Beagle 身份") +
+      (doorName ? " · " + doorName : "") + "</span><br>" +
+      '<span class="wmono" style="font-size:.72rem">' + s.decentUserid + "</span></div>"
+    : "";
+
   p.innerHTML =
     '<div class="whead">' + T("Signed in", "已登录") + "</div>" +
     row(T("wallet", "钱包"), '<span class="wmono">' + shortAddr(s.wallet) + "</span>") +
@@ -237,13 +252,23 @@ function renderPanel(s) {
       "Holdings are read from the chain, not from anything you typed. Nothing here is stored except the wallet address and the time.",
       "持仓是实时读自链上的，不是你填的。除了钱包地址和时间，这里不存别的。") + "</div>" +
     briefsRow(s) +
+    idRow +
+    // 两个门各一个按钮，**不自动选**。原先是 signIn() 自己探测本机端口，谁先答应用谁 ——
+    // 于是「登录时本机 Beagle 在睡、加好友时醒了」就会悄悄换成另一个身份。
+    // goji.fi.chat 自己的登录菜单也正是这两项，顺序一致，省得两边对不上。
     (s.needsBeagleSignIn
-      ? '<button class="chip" id="wbeagle" style="margin-top:12px;width:100%">' +
-        T("Link Beagle identity", "补上 Beagle 登录") + "</button>" : "") +
+      ? '<div class="wnote" style="margin-top:12px">' +
+        T("Which Beagle identity should hold this pass? Rooms and pushes will see exactly this one.",
+          "让哪个 Beagle 身份拿着这张通行证？房间和推送看到的就是它。") + "</div>" +
+        '<button class="chip" id="wbeagle-web" style="margin-top:6px;width:100%">app.beagle.chat</button>' +
+        '<button class="chip" id="wbeagle-cli" style="margin-top:6px;width:100%">' +
+        T("Beagle CLI · localhost:8766", "本机 CLI · localhost:8766") + "</button>" : "") +
     '<button class="chip" id="wout" style="margin-top:8px">' + T("Sign out", "退出") + "</button>";
 
-  var link = p.querySelector("#wbeagle");
-  if (link) link.addEventListener("click", beagleSignIn);
+  var dweb = p.querySelector("#wbeagle-web");
+  if (dweb) dweb.addEventListener("click", function () { beagleSignIn("web"); });
+  var dcli = p.querySelector("#wbeagle-cli");
+  if (dcli) dcli.addEventListener("click", function () { beagleSignIn("cli"); });
   var sub = p.querySelector("#wsub");
   if (sub) sub.addEventListener("click", subscribeBriefs);
   p.querySelector("#wout").addEventListener("click", function () {
@@ -412,9 +437,19 @@ function waiting(label, maxSec) {
   var h = setInterval(tick, 1000);
   return function () { clearInterval(h); };
 }
-function beagleSignIn() {
+// 本机 CLI 的候选端口。最后一项是 pickUiOrigin() 的「不探测、直接用」兜底，
+// 所以把首选的 127.0.0.1:8766 再写一遍放在末尾 —— 这样别的端口仍然能被探到，
+// 而**兜底永远落在本机**，不会跳到网页版换成另一个身份。
+var CLI_ORIGINS = [
+  "http://127.0.0.1:8766", "http://localhost:8766",
+  "http://localhost:8767", "http://localhost:8768", "http://localhost:8765",
+  "http://127.0.0.1:8766",
+];
+var WEB_ORIGINS = ["https://app.beagle.chat"];
+
+function beagleSignIn(which) {
   var p = ensurePanel();
-  var btn = p.querySelector("#wbeagle");
+  var btn = p.querySelector(which === "cli" ? "#wbeagle-cli" : "#wbeagle-web");
   if (btn) { btn.disabled = true; btn.textContent = T("Opening Beagle\u2026", "正在打开 Beagle…"); }
   var stop = null;
   import("/assets/vendor/beagle-connect.js?v=" + BEAGLE_V)
@@ -423,8 +458,8 @@ function beagleSignIn() {
         .then(function (n) {
           if (!n || !n.ok) throw new Error(T("could not get a nonce", "没能取到 nonce"));
           stop = waiting(T("Linking Beagle", "正在链接 Beagle"), 120);
-          // signIn 会开一个弹窗：本机装了 Beagle 就走 127.0.0.1:8766，没装则走 app.beagle.chat。
-          return m.signIn({ nonce: n.nonce });
+          // 门是用户点的那一个，不再由探测结果决定。
+          return m.signIn({ nonce: n.nonce, origins: which === "cli" ? CLI_ORIGINS : WEB_ORIGINS });
         });
     })
     .then(function (who) {

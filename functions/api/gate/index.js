@@ -7,5 +7,15 @@ import { gateSpec } from "../../_lib/gate.js";
 export function onRequestGet({ env }) {
   const kvErr = kvProblem(env);
   if (kvErr) return bad("not-configured", kvErr, 503);
-  return json({ ok: true, ...gateSpec(env), check: "/api/gate/{address}" });
+  return json({
+    ok: true,
+    ...gateSpec(env),
+    check: {
+      // 按链上地址问。任何人都能自己读同样的链得到同样的答案。
+      address: "/api/gate/{address}",
+      // 按 Beagle 身份问。给 registerRoomGate 这类只握着 userid 的调用方用 ——
+      // userid ↔ 钱包这一跳是两道门各一个签名换来的，响应里不含钱包地址。
+      beagle: "/api/gate/beagle/{userid}",
+    },
+  });
 }
