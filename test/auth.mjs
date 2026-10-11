@@ -148,5 +148,30 @@ for (const f of ["b58.js", "xeddsa.js"]) {
   t(`assets/vendor/${f} 与 functions/_lib/${f} 一致`, a === b, a === b ? "" : "跑 ./bump-assets.sh");
 }
 
+// 23-25. 重连钱包不该丢掉已经链接过的 Beagle 身份。
+// 实测踩到：用户在 apex 上链接了 Beagle，换到 www 之后会话里只有钱包门，
+// 面板又显示「补上 Beagle 登录」，而「订阅研报」按钮根本不出现。
+// 绑定一直在 KV 里，只是登录时没去读。会话按域名分，绑定按钱包存，所以跨域名也该通。
+await KV.put(`bind:wallet:${address}`, JSON.stringify({
+  decentUserid: "BVuiTvzuNTscma9uFZVy9auMb4doc64X6Qu5eaUNAzkU",
+  carrierAddress: "Q5M2Hr7BtLHNz3GV5C3AEXwzBUyA4yaJfc1wJNepxDteG9tvXTaC",
+  t: new Date().toISOString(),
+}));
+const nB = (await (await nonceGet({ env })).json()).nonce;
+const sigB = await signMsg(`${PREFIX}\nhttps://gojipower.xyz\n${nB}`);
+const rB = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: nB, sig: sigB }) }), env });
+const jB = await rB.json();
+t("重连钱包恢复已绑定的 Beagle 身份", jB.decentUserid === "BVuiTvzuNTscma9uFZVy9auMb4doc64X6Qu5eaUNAzkU");
+t("可达地址一并恢复，needsBeagleSignIn 变 false", !!jB.carrierAddress && jB.needsBeagleSignIn === false);
+t("proven 记上两道门", JSON.stringify(jB.proven) === JSON.stringify(["wallet", "decent"]), JSON.stringify(jB.proven));
+
+// 换一个从没绑过的钱包，不应该凭空长出身份
+await KV.delete(`bind:wallet:${address}`);
+const nC = (await (await nonceGet({ env })).json()).nonce;
+const sigC = await signMsg(`${PREFIX}\nhttps://gojipower.xyz\n${nC}`);
+const rC = await walletPost({ request: new Request("https://gojipower.xyz/api/auth/wallet", { method: "POST", body: JSON.stringify({ walletType: "solana", address, nonce: nC, sig: sigC }) }), env });
+const jC = await rC.json();
+t("没绑过就不恢复（不会凭空出现身份）", jC.decentUserid === null && jC.needsBeagleSignIn === true);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
