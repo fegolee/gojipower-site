@@ -380,15 +380,40 @@ function signIn() {
 // 版本号由 ./bump-assets.sh 写入：这个域名的浏览器缓存被区域设置改写成 4 小时，
 // 只能靠换 URL 绕过，和 site.js 自己的 ?v= 是同一个道理。
 var BEAGLE_V = "5d8c2761e9";
+
+// vendored 的 beagle-connect 等弹窗回传最多 120 秒。按钮如果整段时间只显示
+// 「正在打开 Beagle…」，那和「什么都没发生」在用户眼里是一样的 ——
+// 实测就是这么卡住的：没变化、也没报错，因为错误要两分钟后才出现。
+// 所以把等待本身做成可见状态：谁在等、等了多久、还要等多久。
+function waiting(label, maxSec) {
+  var pane = ensurePanel(), t0 = Date.now();
+  pane.innerHTML = '<div class="whead">' + label + "</div>" + '<div class="wnote" id="wwait"></div>';
+  pane.hidden = false;
+  var tick = function () {
+    var el = document.getElementById("wwait");
+    if (!el) return;
+    var n = Math.round((Date.now() - t0) / 1000);
+    el.innerHTML = T("waiting for Beagle to reply — ", "等待 Beagle 回传 —— ") + n + "s / " + maxSec + "s<br><br>" +
+      '<span style="color:var(--muted)">' +
+      T("Approve in the Beagle window. If you already approved and this keeps counting, the reply is not reaching this page.",
+        "请在 Beagle 窗口里点 Approve。如果你已经点了而这里还在数，说明回传没有到达本页。") +
+      "</span>";
+  };
+  tick();
+  var h = setInterval(tick, 1000);
+  return function () { clearInterval(h); };
+}
 function beagleSignIn() {
   var p = ensurePanel();
   var btn = p.querySelector("#wbeagle");
   if (btn) { btn.disabled = true; btn.textContent = T("Opening Beagle\u2026", "正在打开 Beagle…"); }
+  var stop = null;
   import("/assets/vendor/beagle-connect.js?v=" + BEAGLE_V)
     .then(function (m) {
       return fetch("/api/auth/nonce").then(function (r) { return r.json(); })
         .then(function (n) {
           if (!n || !n.ok) throw new Error(T("could not get a nonce", "没能取到 nonce"));
+          stop = waiting(T("Linking Beagle", "正在链接 Beagle"), 120);
           // signIn 会开一个弹窗：本机装了 Beagle 就走 127.0.0.1:8766，没装则走 app.beagle.chat。
           return m.signIn({ nonce: n.nonce });
         });
@@ -402,10 +427,12 @@ function beagleSignIn() {
     })
     .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
     .then(function (x) {
+      if (stop) stop();
       if (x.status !== 200 || !x.j.ok) throw new Error((x.j && x.j.message) || ("HTTP " + x.status));
       return fetch("/api/auth/session").then(function (r) { return r.json(); }).then(renderPanel);
     })
     .catch(function (e) {
+      if (stop) stop();
       try { console.error("[gojipower] beagle sign-in failed:", e); } catch (_) {}
       var m = (e && (e.code === 4001 || /reject|denied|cancel|closed/i.test(e.message || "")))
         ? T("Beagle sign-in was cancelled.", "你取消了 Beagle 登录。")
