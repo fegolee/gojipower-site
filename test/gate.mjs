@@ -191,5 +191,27 @@ t("限流按 IP 分桶", (await bGet({
   params: { userid: DECENT }, env: envB(),
 })).status === 200);
 
+// ---- CORS：板块的页面要能直接读，会话端点绝不能跟着开 ----
+const { onRequestOptions: specOpts } = await import(`${B}/api/gate/index.js`);
+const { onRequestGet: sessGet } = await import(`${B}/api/auth/session.js`);
+
+const acao = (r) => r.headers.get("access-control-allow-origin");
+t("契约端点带 ACAO", acao(await specGet({ env: envWith({ GATE_MIN_USD: "25" }) })) === "*");
+t("按地址那条带 ACAO",
+  acao(await addrGet({ request: req("cors-a"), params: { address: TREASURY }, env: envWith({ GATE_MIN_USD: "25" }) })) === "*");
+t("按 Beagle 身份那条带 ACAO", acao(await askB(DECENT, envB())) === "*");
+t("400 的错误响应也带 ACAO（否则调用方只看得见「失败了」）",
+  acao(await askB("0OIl!!")) === "*");
+t("预检返回 204 且带方法白名单", await (async () => {
+  const r = specOpts(); return r.status === 204 && /GET/.test(r.headers.get("access-control-allow-methods") || "");
+})());
+
+// 这一条是整个改动里唯一真正危险的地方：会话端点带了 ACAO 就等于把登录态
+// 交给任意网站去读。ACAO:* 与 credentials 在浏览器里互斥，所以配错会失败而不是
+// 放行 —— 但别靠那条兜底，这里直接钉死。
+const sess = await sessGet({ request: new Request("https://gojipower.xyz/api/auth/session"), env: envB() });
+t("会话端点没有 ACAO", acao(sess) === null);
+t("会话端点仍然可用（只是不跨源）", (await sess.json()).signedIn === false);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

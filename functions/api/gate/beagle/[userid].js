@@ -1,4 +1,4 @@
-import { json, bad } from "../../../_lib/http.js";
+import { json, bad, withCors, corsPreflight } from "../../../_lib/http.js";
 import { kvProblem } from "../../../_lib/config.js";
 import { b58decode } from "../../../_lib/b58.js";
 import { evaluate } from "../../../_lib/gate.js";
@@ -21,7 +21,7 @@ import { rateLimit, cached } from "../../../_lib/throttle.js";
 // **但响应里绝不出现钱包地址。** 「这个 Beagle 身份达标」是用户自己要出示的
 // 凭证；「他是哪个钱包」不是。所以 balance / usd / priceUsd / 资产 id 全部不出 ——
 // Core 资产的持有人可以免费反查，带上资产 id 就等于带上了钱包。
-export async function onRequestGet({ request, params, env }) {
+async function handle({ request, params, env }) {
   const kvErr = kvProblem(env);
   if (kvErr) return bad("not-configured", kvErr, 503);
 
@@ -93,3 +93,7 @@ const NOTE =
   "meet the published threshold (GET /api/gate). No wallet address, balance or asset id is " +
   "returned — that link is the user's, not ours. meets:null means the chain read failed just " +
   "now; it is not a denial, and whether to fail open or closed is the caller's policy, not ours.";
+
+// 公开数据：任何板块的页面都能直接读，不必各自写一遍链上逻辑。
+export const onRequestGet = (ctx) => Promise.resolve(handle(ctx)).then(withCors);
+export const onRequestOptions = () => corsPreflight();

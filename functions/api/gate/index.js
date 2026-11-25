@@ -1,10 +1,10 @@
-import { json, bad } from "../../_lib/http.js";
+import { json, bad, withCors, corsPreflight } from "../../_lib/http.js";
 import { kvProblem } from "../../_lib/config.js";
 import { gateSpec } from "../../_lib/gate.js";
 
 // 门槛的公开契约。Beagle、dexfans、任何第三方都应该读这里，
 // 而不是各自再实现一遍链上读取 —— 那样门槛一改就有人落后。
-export function onRequestGet({ env }) {
+function handle({ env }) {
   const kvErr = kvProblem(env);
   if (kvErr) return bad("not-configured", kvErr, 503);
   return json({
@@ -19,3 +19,7 @@ export function onRequestGet({ env }) {
     },
   });
 }
+
+// 公开数据：任何板块的页面都能直接读，不必各自写一遍链上逻辑。
+export const onRequestGet = (ctx) => Promise.resolve(handle(ctx)).then(withCors);
+export const onRequestOptions = () => corsPreflight();
