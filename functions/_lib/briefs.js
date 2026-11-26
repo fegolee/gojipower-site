@@ -58,7 +58,7 @@ export const LANG_RE = /^[a-z]{2}(-[A-Za-z]{2,4})?$/;
 
 // 允许出现的键。多一个就 400，并把那个键名报回去。
 export const ALLOWED = new Set([
-  "id", "visibility", "lang", "title", "facts", "reading", "sources", "alsoPostedTo", "covers",
+  "id", "visibility", "lang", "title", "facts", "reading", "body", "sources", "alsoPostedTo", "covers",
 ]);
 // 退役的键单独列出来，好给一句说得清的话，而不是一句「不认识这个字段」。
 export const RETIRED = {
@@ -146,6 +146,28 @@ export function postedTo(v) {
   return out;
 }
 
+// 裁决 ⑦：**未分开的正文有它自己的字段，叫 body。**（2026-11-26 加）
+//
+// 推送方问：已发正文里没有机械可判的事实/解读分界（「怎么算我判断错了」是解读，
+// 「验证点：…」半句混在事实后面），按关键词猜等于替写稿那一侧做判断 ——
+// 所以他把全部内容放进了 facts、reading 留空。
+//
+// 「全部放进 facts」不是一个中性的退路，它**正是**裁决 ① 要防的那件事：
+// 解读被印在「事实」标题底下，免责标签管不到它。只不过这一次是诚实地走到的。
+//
+// 但「不许发」也不对：那会把一条渠道卡在一个要动每天公开产出的改动上。
+// 所以给它第三种状态，而且是**一个字段**而不是一个布尔开关 ——
+// 布尔开关会让内容继续躺在名叫 facts 的字段里、而别处有个标志说它不是，
+// 两个真相来源，忘一个就回到原点。写 "facts" 本身就是一句声明「这些是事实」；
+// 写 "body" 本身就是一句声明「我没有分开」。形状即承诺，和 ① 同一条原则。
+//
+// 页面把 body 印在「正文 · 事实与解读未分开」这个标题底下（琥珀色，和解读同一档），
+// **不印在「事实」底下**。于是首页那句承诺仍然成立：凡是标着「事实」的，
+// 就真的只有事实；没分开的那些，标签自己说了它没分开。
+//
+// 这是过渡态，不是终点。终点是让写稿那一次调用同时产出两部分 ——
+// 做出「哪句是事实」这个判断的就是写稿的那个模型，捕获它的判断比事后复原准。
+
 // index 里只放摘要。读列表是 1 次 KV 读，展开正文才按期各读一次 ——
 // 否则一页 10 期就是 10 次读，而大多数访客只看标题。
 export const summary = (r) => ({
@@ -157,7 +179,8 @@ export const summary = (r) => ({
   covers: r.covers || null,
   alsoPostedTo: r.alsoPostedTo || [],
   counts: {
-    facts: r.facts.length,
+    facts: (r.facts || []).length,
+    body: (r.body || []).length,
     reading: (r.reading || []).length,
     sources: (r.sources || []).length,
     // 有几条来源是带链接的。门外看得见「3 条来源、0 条有链接」，

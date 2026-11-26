@@ -83,6 +83,25 @@ t("短正文逐字切（4 条单字）→ 400，最小长度挡下",
   (await publish({ request: post({ ...ONE, facts: [..."涨跌互现"] }), env: env() })).status === 400);
 t("两个字的条目仍然收", (await publish({ request: post({ ...ONE, facts: ["涨跌"], id: "two" }), env: env() })).status === 200);
 
+// ---- facts / body 二选一：没分开的正文有自己的字段，绝不印在「事实」底下 ----
+[st, j] = await J(await publish({ request: post({ visibility: "public", lang: "zh", title: "t" }), env: env() }));
+t("facts 和 body 都不给 → 400", st === 400 && j.code === "facts-or-body");
+t("拒绝理由点明「别把没分开的正文塞进 facts」", /exact thing these two fields exist to prevent/i.test(j.message || ""));
+[st, j] = await J(await publish({ request: post({ ...ONE, body: ["x1", "x2"] }), env: env() }));
+t("facts 和 body 同时给 → 400", st === 400 && j.code === "facts-or-body");
+[st, j] = await J(await publish({ request: post({ visibility: "public", lang: "zh", title: "t", body: ["一段没分开的正文"], reading: ["解读"] }), env: env() }));
+t("body 配 reading → 400（能拎出解读就分得开事实）", st === 400 && j.code === "reading-with-body");
+store.clear();
+[st, j] = await J(await publish({ request: post({ visibility: "public", lang: "zh", title: "t", id: "b1", body: ["一段没分开的正文"] }), env: env() }));
+t("只给 body → 200，并回 separated:false", st === 200 && j.separated === false);
+[st, j] = await J(await feed({ request: get(), env: env() }));
+t("body 走自己的字段，facts 是空的", j.items[0].body.length === 1 && j.items[0].facts.length === 0);
+t("计数里 body 和 facts 分开报", j.items[0].counts.body === 1 && j.items[0].counts.facts === 0);
+const jsSrc = readFileSync(new URL("../assets/site.js", import.meta.url), "utf8");
+const blk = jsSrc.slice(jsSrc.indexOf("研报列表"));
+t("渲染器把 body 印在自己的标题下，不混进「事实」",
+  /not separated in the source/.test(blk) && /来源未把事实与解读分开/.test(blk));
+
 // ---- 退役字段显式报错，不静默丢弃 ----
 for (const k of ["titleZh", "factsZh", "readingZh"]) {
   [st, j] = await J(await publish({ request: post({ ...ONE, [k]: ["x"] }), env: env() }));

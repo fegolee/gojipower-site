@@ -275,5 +275,11 @@ footer{border-top:1px solid var(--line);padding-block:34px;color:var(--muted);fo
    （doc 426 > 375）。断点只给 .bi 子树 —— 不可断字符串是从推送进来的，
    静态页那些人写的句子不需要这条，也不该被它改掉。 */
 .bi,.bi li,.bi a{overflow-wrap:anywhere}
+/* 推送来的条目里会有换行（广场正文的「小标题 + 正文」就只隔一个换行）。
+   默认 white-space:normal 会把它压成一个空格 —— 实测渲染成
+   「…谁在卖 过去 1 小时…」，中间没有标点。那是我把发布方发来的数据
+   悄悄丢了，不是他的数据有问题。pre-line 保留换行、仍然合并连续空格、
+   仍然正常折行。 */
+.bi li{white-space:pre-line}
 .bi .note{margin:0}
 .brf>.note{margin:0}

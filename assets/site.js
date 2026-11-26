@@ -581,11 +581,14 @@ if (document.getElementById("brfeed")) (function () {
 
     if (it.locked) {
       var n = it.counts || {};
-      art.appendChild(el("p", "note", T(
-        "Behind the gate. " + (n.facts || 0) + " facts" + (n.reading ? " and a reading section" : "") +
-          ". Connect a wallet that meets the bar to read it.",
-        "在门后。" + (n.facts || 0) + " 条事实" + (n.reading ? "，另有解读一节" : "") +
-          "。连接一个达标的钱包即可阅读。")));
+      var what = n.body
+        ? T((n.body || 0) + " items, not separated into facts and reading",
+            (n.body || 0) + " 条，事实与解读未分开")
+        : T((n.facts || 0) + " facts" + (n.reading ? " and a reading section" : ""),
+            (n.facts || 0) + " 条事实" + (n.reading ? "，另有解读一节" : ""));
+      art.appendChild(el("p", "note",
+        T("Behind the gate. " + what + ". Connect a wallet that meets the bar to read it.",
+          "在门后。" + what + "。连接一个达标的钱包即可阅读。")));
       return art;
     }
     if (it.unreadable) {
@@ -595,6 +598,13 @@ if (document.getElementById("brfeed")) (function () {
 
     var facts = it.facts || [];
     if (facts.length) art.appendChild(section(T("Facts", "事实"), facts));
+    // 未分开的正文印在它自己的标题底下，**不印在「事实」底下**。
+    // 首页那句承诺（事实与解读分开印）因此仍然成立：标着「事实」的就真的只有事实。
+    var body = it.body || [];
+    if (body.length)
+      art.appendChild(section(
+        T("Body · facts and reading not separated in the source",
+          "正文 · 来源未把事实与解读分开"), body, "amber"));
     var reading = it.reading || [];
     if (reading.length)
       art.appendChild(section(T("Reading · no predictive weight", "解读 · 不带预测权重"), reading, "amber"));

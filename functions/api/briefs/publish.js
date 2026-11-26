@@ -49,14 +49,31 @@ export async function onRequestPost({ request, env }) {
   const title = str(b.title, 200);
   if (!title) return bad("bad-title", "title is required, 1-200 chars", 400);
 
-  const facts = items(b.facts, 24, 4000);
-  if (!facts || !facts.length)
+  // facts 与 body 二选一，必须有且只有一个。
+  const hasFacts = b.facts != null, hasBody = b.body != null;
+  if (hasFacts === hasBody)
+    return bad("facts-or-body",
+      hasFacts
+        ? 'send facts or body, not both: "facts" asserts that these items are facts, "body" says the facts and the reading were not separated. A brief cannot claim both.'
+        : 'one of facts or body is required. Use "facts" (plus optional "reading") when you can say which sentences are facts — they print under a Facts heading and the reading carries a no-predictive-weight label. ' +
+          'Use "body" when the two are not separated in the source: it prints under its own heading that says so. Do not put unseparated prose in "facts": that prints interpretation under a heading claiming it is fact, which is the exact thing these two fields exist to prevent.', 400);
+
+  const body = hasBody ? items(b.body, 24, 4000) : [];
+  if (hasBody && (!body || !body.length))
+    return bad("bad-body", "body must be a non-empty ARRAY of strings (max 24 items, 4000 chars each), same rules as facts", 400);
+
+  const facts = hasFacts ? items(b.facts, 24, 4000) : [];
+  if (hasFacts && (!facts || !facts.length))
     return bad("bad-facts",
       "facts must be a non-empty ARRAY of strings (max 24 items, 4000 chars each). A single string is not accepted. " +
       "Splitting prose into facts is a judgement about which sentences are facts, and it belongs to whoever wrote them — not to a delimiter. " +
       "A paragraph that ends in an interpretation would pass as a fact, print under the Facts heading, and escape the no-predictive-weight label, with a 200 and no sign that anything went wrong. " +
       "Each item must be at least 2 characters: do not reach for a language built-in that turns a string into a list, because several of them split it per character.", 400);
 
+  // reading 只跟 facts 走：能把解读单独拎出来，就说明也分得开事实。
+  if (b.reading != null && hasBody)
+    return bad("reading-with-body",
+      "reading cannot accompany body: if you could separate the reading, the facts are separable too — send facts plus reading instead", 400);
   const reading = b.reading == null ? [] : items(b.reading, 24, 4000);
   if (reading === null)
     return bad("bad-reading", "reading, if sent, must be an ARRAY of strings — same reason as facts", 400);
@@ -91,7 +108,7 @@ export async function onRequestPost({ request, env }) {
     for (let n = 2; n <= 20 && idx.some((x) => x && x.id === id); n++) id = base + "-" + n;
   }
 
-  const rec = { id, visibility: b.visibility, lang, title, facts, reading,
+  const rec = { id, visibility: b.visibility, lang, title, facts, body, reading,
                 sources: src, alsoPostedTo: posted, covers, at };
 
   await env.GOJI_KV.put(itemKey(id), JSON.stringify(rec));
@@ -106,7 +123,7 @@ export async function onRequestPost({ request, env }) {
   for (const e of evicted) { try { await env.GOJI_KV.delete(itemKey(e.id)); } catch { /* 下次再清 */ } }
 
   return json({
-    ok: true, id, visibility: rec.visibility, lang, at,
+    ok: true, id, visibility: rec.visibility, lang, separated: hasFacts, at,
     replaced: was >= 0, count: kept.length, keeps: KEEP, evicted: evicted.length,
     page: "https://gojipower.xyz/brief",
   });

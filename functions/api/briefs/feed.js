@@ -50,7 +50,8 @@ export async function onRequestGet({ request, env }) {
     if (!rec) { items.push({ ...sum, locked: false, unreadable: true }); continue; }
     items.push({
       ...sum, locked: false,
-      facts: rec.facts,
+      facts: rec.facts || [],
+      body: rec.body || [],
       reading: rec.reading || [],
       sources: rec.sources || [],
     });
@@ -68,6 +69,7 @@ export async function onRequestGet({ request, env }) {
     note: "Facts and reading are stored as separate fields, and the reading carries no predictive weight. " +
           "Each brief states its own visibility: a public one is open to everyone, a gated one needs the gate at /api/gate. " +
           "One brief is one language; two independently written versions are two briefs, not a translation pair. " +
-          "A source without a url is a source that has no page to link, not an unverified one.",
+          "A source without a url is a source that has no page to link, not an unverified one. " +
+          "Items printed under facts are asserted to be facts; an entry whose prose was not separated arrives in body and is printed under a heading that says so.",
   });
 }
