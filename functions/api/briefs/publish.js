@@ -54,7 +54,8 @@ export async function onRequestPost({ request, env }) {
     return bad("bad-facts",
       "facts must be a non-empty ARRAY of strings (max 24 items, 4000 chars each). A single string is not accepted. " +
       "Splitting prose into facts is a judgement about which sentences are facts, and it belongs to whoever wrote them — not to a delimiter. " +
-      "A paragraph that ends in an interpretation would pass as a fact, print under the Facts heading, and escape the no-predictive-weight label, with a 200 and no sign that anything went wrong.", 400);
+      "A paragraph that ends in an interpretation would pass as a fact, print under the Facts heading, and escape the no-predictive-weight label, with a 200 and no sign that anything went wrong. " +
+      "Each item must be at least 2 characters: do not reach for a language built-in that turns a string into a list, because several of them split it per character.", 400);
 
   const reading = b.reading == null ? [] : items(b.reading, 24, 4000);
   if (reading === null)

@@ -72,6 +72,17 @@ t("reading 传字符串 → 400", (await publish({ request: post({ ...ONE, readi
 t("facts 里有空字符串 → 400，不静默丢弃",
   (await publish({ request: post({ ...ONE, facts: ["ok", "   "] }), env: env() })).status === 400);
 
+// 逐字切：客户端「帮忙」把字符串转成数组，就绕过了「只收数组」那道拦。
+// 2026-11-26 推送方报来的，他那边已修；这里补上服务端这一侧。
+const PARA = "24 小时交易所现货净流入 +5,869 BTC（15 家同口径，截至 11-26 02:00 UTC）。" +
+             "大额转账只有 1 笔、最大单笔 909.39 BTC，是分散性搬币而非单一巨鲸动作。" +
+             "价格在涨、币却往交易所走，这是最矛盾的一项。";
+t("长正文逐字切（117 条）→ 400，条数上限先挡下",
+  (await publish({ request: post({ ...ONE, facts: [...PARA] }), env: env() })).status === 400);
+t("短正文逐字切（4 条单字）→ 400，最小长度挡下",
+  (await publish({ request: post({ ...ONE, facts: [..."涨跌互现"] }), env: env() })).status === 400);
+t("两个字的条目仍然收", (await publish({ request: post({ ...ONE, facts: ["涨跌"], id: "two" }), env: env() })).status === 200);
+
 // ---- 退役字段显式报错，不静默丢弃 ----
 for (const k of ["titleZh", "factsZh", "readingZh"]) {
   [st, j] = await J(await publish({ request: post({ ...ONE, [k]: ["x"] }), env: env() }));
@@ -190,7 +201,9 @@ t("渲染端不再做中英回落", block.length > 500 && !/factsZh|titleZh|read
 
 // ---- 真打链的一组：已登录但持仓判不出来，应当锁着并说明原因 ----
 store.clear();
-await publish({ request: post({ visibility: "gated", lang: "en", title: "g", facts: ["x"], id: "g1" }), env: env() });
+await publish({ request: post({ visibility: "gated", lang: "en", title: "g", facts: ["one fact"], id: "g1" }), env: env() });
+[st, j] = await J(await feed({ request: get(), env: env() }));
+t("这一组的前置：门后那期确实存进去了", j.total === 1, `total=${j.total}`);
 const sess = await sign({ wallet: "11111111111111111111111111111111", exp: Math.floor(Date.now() / 1000) + 600 }, SECRET);
 [st, j] = await J(await feed({ request: get("", sess), env: env({ GATE_MIN_USD: "25" }) }));
 t("已登录但判不出 → 仍然锁着", j.unlocked === false && j.items[0].locked === true);

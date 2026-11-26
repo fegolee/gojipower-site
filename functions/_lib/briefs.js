@@ -82,12 +82,29 @@ export function str(v, max) {
 }
 
 // 只收数组（裁决 ④）。返回 null 表示形状不对，调用方据此报 400。
+//
+// **每条至少 2 个字符**，这一条是 2026-11-26 推送方报来的一个洞补的：
+// 他的 build_payload 第一版写的是 `list(facts)`，而 Python 里
+// `list("一整段")` 会把字符串切成**逐字**数组 ["一","整","段"] ——
+// 每条都是合法的非空字符串，于是「只收数组」这道拦**被客户端的好意绕过去了**。
+//
+// 实测过边界，比他和我原先以为的都窄：他那段真实正文 117 个字，
+// 逐字切出 117 条 > maxItems 24，**已经会被挡下**（400 bad-facts）。
+// 真正漏过去的只有「整段本身不超过 24 字」那一小片 —— 实测 list("涨跌互现")
+// 四条单字返 200。加上这条最小长度，这个形状就彻底关死了。
+//
+// 说清它**不**管什么：任何语言里一个字符都不构成一条事实，所以这条没有误伤；
+// 但它只认得「逐字切」这一种形状。客户端要是用空格把两句粘成一条，
+// 服务端照样看不出来。**切条的判断在写稿的人那里，这里只负责让错误的形状
+// 大声失败，而不是让它悄悄成功。**
+const MIN_ITEM = 2;
+
 export function items(v, maxItems, maxLen) {
   if (!Array.isArray(v) || v.length > maxItems) return null;
   const out = [];
   for (const x of v) {
     const s = str(x, maxLen);
-    if (!s) return null;              // 空条目也报错：静默丢弃会让条数对不上
+    if (!s || s.length < MIN_ITEM) return null;   // 空条目与单字条目都报错，不静默丢弃
     out.push(s);
   }
   return out;
