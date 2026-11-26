@@ -573,8 +573,16 @@ if (document.getElementById("brfeed")) (function () {
 
     var meta = [];
     if (it.lang) meta.push(langName(it.lang));
-    meta.push(stamp(it.at));
+    // 覆盖区间排在收到时刻之前。`at` 是服务端在 publish 那一刻生成的**收据**（`new Date()`），
+    // 同一批推上来的几期会落在同一分钟——2026-11-26 实测六期全是同一分钟。
+    // 让一个每条都一样的数打头，读者先看到的就是一个不含信息的数；
+    // 而覆盖区间才是「这一期在说哪段时间」。
     if (it.covers) meta.push(T("covers ", "覆盖 ") + it.covers + T(" (as stated by the source)", "（来源自述）"));
+    // 两个时间表达现在相邻，所以收据那个不能再裸着印——
+    // 不带标签的话它会被读成覆盖区间的一部分。这一句和顶上 `bLast` 那格
+    // 「本站收到的时刻」是同一个意思。
+    var st = stamp(it.at);
+    meta.push(st === "—" ? st : T("received ", "收到 ") + st);
     if (it.alsoPostedTo && it.alsoPostedTo.length)
       meta.push(T("also published on ", "同时发布于 ") + it.alsoPostedTo.join(", "));
     art.appendChild(el("div", "bim", meta.join("  ·  ")));

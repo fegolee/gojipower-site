@@ -97,8 +97,11 @@ t("只给 body → 200，并回 separated:false", st === 200 && j.separated === 
 [st, j] = await J(await feed({ request: get(), env: env() }));
 t("body 走自己的字段，facts 是空的", j.items[0].body.length === 1 && j.items[0].facts.length === 0);
 t("计数里 body 和 facts 分开报", j.items[0].counts.body === 1 && j.items[0].counts.facts === 0);
+const RENDER_ANCHOR = 'if (document.getElementById("brfeed"))';
 const jsSrc = readFileSync(new URL("../assets/site.js", import.meta.url), "utf8");
-const blk = jsSrc.slice(jsSrc.indexOf("研报列表"));
+// 锚在渲染器自己的入口上。**不要用「研报列表」做锚**：那四个字在文件里出现两次
+// （第 21 行的注释、第 514 行的分隔横幅），`indexOf` 拿到的是第一个。
+const blk = jsSrc.slice(jsSrc.indexOf(RENDER_ANCHOR));
 t("渲染器把 body 印在自己的标题下，不混进「事实」",
   /not separated in the source/.test(blk) && /来源未把事实与解读分开/.test(blk));
 
@@ -213,10 +216,30 @@ t("503 的响应里没有 items 字段冒充空列表", !("items" in j));
 
 // ---- 渲染端不许用 innerHTML 落推送来的文本，也不许跨语言回落 ----
 const js = readFileSync(new URL("../assets/site.js", import.meta.url), "utf8");
-const block = js.slice(js.indexOf("研报列表"), js.indexOf("研报列表") + 7000);
-t("site.js 里有研报渲染块", block.length > 500);
-t("研报渲染块里没有 innerHTML", block.length > 500 && !/innerHTML/.test(block));
-t("渲染端不再做中英回落", block.length > 500 && !/factsZh|titleZh|readingZh/.test(block));
+const block = js.slice(js.indexOf(RENDER_ANCHOR));
+// **先把窗口本身钉住。** 下面全是否定断言，而否定断言对着错地方会**空过**：
+// 旧锚点（"研报列表"）命中的是第 21 行那条注释，切出来的 7000 字是语言开关那一段，
+// **根本不含研报渲染器**。它一直是绿的，只因为那一段恰好没有 innerHTML——
+// 而 site.js 里是有 innerHTML 的（钱包面板，202/241/347/428/434 行）。
+t("渲染块的窗口对准了（否则下面的否定断言全是空过）",
+  // 判据要能区开「渲染器」和旧锚点命中的「语言开关那一段」：后者既没有 item()
+  // 也没有 meta.push。**不要拿 LANGHOOKS 当反向判据** —— 渲染器自己就要登记
+  // 语言钩子（切了语言要重画），我第一版写成 !/LANGHOOKS/，当场被这条红掉。
+  block.indexOf(RENDER_ANCHOR) === 0 &&
+  /function item\(it\)/.test(block) && /meta\.push\(/.test(block),
+  `block=${block.length}`);
+t("研报渲染块里没有 innerHTML", !/innerHTML/.test(block));
+t("渲染端不再做中英回落", !/factsZh|titleZh|readingZh/.test(block));
+
+// ---- meta 行的次序：覆盖区间在前，收据时刻在后且带标签 ----
+// `at` 是服务端 publish 那一刻的收据，同一批推上来的几期会落在同一分钟；
+// 让它打头等于让读者先看见一个每条都一样的数。这是个容易被后来的改动
+// 静静改回去的决定，所以钉在这里。
+const iCov = block.indexOf('"covers "'), iAt = block.indexOf("stamp(it.at)");
+t("meta 行里两个字段都在", iCov > -1 && iAt > -1, `covers=${iCov} at=${iAt}`);
+t("覆盖区间排在收据时刻之前", iCov > -1 && iAt > iCov, `covers=${iCov} at=${iAt}`);
+t("收据时刻带标签，不裸着印（否则会被读成覆盖区间的一部分）",
+  /"received "/.test(block) && /收到 /.test(block) && !/meta\.push\(stamp\(/.test(block));
 
 // ---- 真打链的一组：已登录但持仓判不出来，应当锁着并说明原因 ----
 store.clear();
