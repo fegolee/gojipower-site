@@ -3,7 +3,7 @@ import { kvProblem } from "../../_lib/config.js";
 import { verify, readCookie } from "../../_lib/session.js";
 import { evaluate } from "../../_lib/gate.js";
 import { cached } from "../../_lib/throttle.js";
-import { readIndex, itemKey } from "../../_lib/briefs.js";
+import { readIndex, itemKey, KEEP } from "../../_lib/briefs.js";
 
 // /brief 这一页读的就是这里。
 //
@@ -50,20 +50,24 @@ export async function onRequestGet({ request, env }) {
     if (!rec) { items.push({ ...sum, locked: false, unreadable: true }); continue; }
     items.push({
       ...sum, locked: false,
-      facts: rec.facts, factsZh: rec.factsZh || null,
-      reading: rec.reading || [], readingZh: rec.readingZh || null,
+      facts: rec.facts,
+      reading: rec.reading || [],
       sources: rec.sources || [],
     });
   }
 
   return json({
     ok: true,
-    total: idx.length, returned: items.length,
+    // keeps 跟着响应走，页面照着显示 —— 写死在 HTML 里的「60」会自己变旧，
+    // 而本站已经为这个栽过一次（首屏的实盘天数写死了 190，实际 244）。
+    total: idx.length, returned: items.length, keeps: KEEP,
     unlocked, reason,
     thresholdUsd: env.GATE_MIN_USD ? Number(env.GATE_MIN_USD) : null,
     asOf,
     items,
     note: "Facts and reading are stored as separate fields, and the reading carries no predictive weight. " +
-          "Each brief states its own visibility: a public one is open to everyone, a gated one needs the gate at /api/gate.",
+          "Each brief states its own visibility: a public one is open to everyone, a gated one needs the gate at /api/gate. " +
+          "One brief is one language; two independently written versions are two briefs, not a translation pair. " +
+          "A source without a url is a source that has no page to link, not an unverified one.",
   });
 }

@@ -529,12 +529,14 @@ if (document.getElementById("brfeed")) (function () {
     if (text != null) n.textContent = text;
     return n;
   }
-  // 中英各一份时按当前语言取，缺的那一边回落到另一边 ——
-  // 宁可显示一种语言，也不要显示一个空白。
-  function pick(en, zh) {
-    var has = function (v) { return typeof v === "string" ? v.length > 0 : !!(v && v.length); };
-    var want = lang === "zh" ? zh : en, other = lang === "zh" ? en : zh;
-    return has(want) ? want : (has(other) ? other : want);
+  // 一期只有一种语言（服务端裁决 ⑤）。所以这里**不做任何语言回落**，
+  // 也不按界面语言过滤列表 —— 过滤会让「本页期数」和看得见的条数对不上。
+  // 每一条自己标出语言，读者自己决定读不读。
+  function langName(tag) {
+    if (!tag) return "";
+    if (tag === "zh" || tag.indexOf("zh-") === 0) return "中文";
+    if (tag === "en" || tag.indexOf("en-") === 0) return "EN";
+    return String(tag).toUpperCase();
   }
   function stamp(iso) {
     return typeof iso === "string" && iso.length >= 16
@@ -563,13 +565,15 @@ if (document.getElementById("brfeed")) (function () {
   function item(it) {
     var art = el("article", "bi");
     var head = el("div", "bih");
-    head.appendChild(el("h3", "bit", pick(it.title, it.titleZh)));
+    head.appendChild(el("h3", "bit", it.title));
     var open = it.visibility === "public";
     head.appendChild(el("span", "pill " + (open ? "g" : "n"),
       open ? T("open", "公开") : T("behind the gate", "门后")));
     art.appendChild(head);
 
-    var meta = [stamp(it.at)];
+    var meta = [];
+    if (it.lang) meta.push(langName(it.lang));
+    meta.push(stamp(it.at));
     if (it.covers) meta.push(T("covers ", "覆盖 ") + it.covers + T(" (as stated by the source)", "（来源自述）"));
     if (it.alsoPostedTo && it.alsoPostedTo.length)
       meta.push(T("also published on ", "同时发布于 ") + it.alsoPostedTo.join(", "));
@@ -589,9 +593,9 @@ if (document.getElementById("brfeed")) (function () {
       return art;
     }
 
-    var facts = pick(it.facts, it.factsZh) || [];
+    var facts = it.facts || [];
     if (facts.length) art.appendChild(section(T("Facts", "事实"), facts));
-    var reading = pick(it.reading, it.readingZh) || [];
+    var reading = it.reading || [];
     if (reading.length)
       art.appendChild(section(T("Reading · no predictive weight", "解读 · 不带预测权重"), reading, "amber"));
 
@@ -601,9 +605,14 @@ if (document.getElementById("brfeed")) (function () {
       var ul = el("ul", "plain");
       it.sources.forEach(function (s) {
         var li = el("li");
-        var a = el("a", null, s.label || s.url);
-        a.href = s.url; a.target = "_blank"; a.rel = "noopener nofollow";
-        li.appendChild(a);
+        if (s.url) {
+          var a = el("a", null, s.label || s.url);
+          a.href = s.url; a.target = "_blank"; a.rel = "noopener nofollow";
+          li.appendChild(a);
+        } else {
+          // 自己从接口算出来的数没有网页可引。造一个链接才是不诚实的那条路。
+          li.appendChild(el("span", null, s.label));
+        }
         ul.appendChild(li);
       });
       w.appendChild(ul);
@@ -641,6 +650,8 @@ if (document.getElementById("brfeed")) (function () {
       j.items && j.items.length ? String(j.items[0].at || "").slice(0, 10) : "—";
     document.getElementById("bGate").textContent =
       j.thresholdUsd == null ? T("not set", "未设定") : "$" + j.thresholdUsd;
+    var keep = document.getElementById("bKeep");
+    if (keep && j.keeps != null) keep.textContent = fmtN(j.keeps);
     access(j);
 
     box.textContent = "";
@@ -672,7 +683,9 @@ if (document.getElementById("brfeed")) (function () {
     })
     .catch(function (e) {
       uplink(false);
-      ["bTotal", "bLast", "bGate", "bYou"].forEach(function (id) { markStale(id, new Date().toISOString().slice(0, 10)); });
+      // bKeep 也要标灰：读失败时留一个永远停在「…」的格子，正是本站反对的
+      // 那种「永远在连接」的指示器。
+      ["bTotal", "bLast", "bGate", "bYou", "bKeep"].forEach(function (id) { markStale(id, new Date().toISOString().slice(0, 10)); });
       var ys = document.getElementById("bYouS");
       if (ys) { ys.removeAttribute("data-en"); ys.removeAttribute("data-zh"); }
       box.textContent = "";

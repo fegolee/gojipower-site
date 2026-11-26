@@ -61,6 +61,7 @@
     <span class="eyebrow" data-en="Why this is a field and not a writing style" data-zh="为什么这是一个字段，不是一种文风">Why this is a field and not a writing style</span>
     <p data-en="Facts and reading arrive as two separate fields and are stored as two separate fields. A promise that lives only in the wording gets broken the first time someone writes in a hurry; a promise that is the shape of the data cannot be broken without the publish being rejected. That is the whole reason it was built this way, and you can see the two arrays yourself in the response at /api/briefs/feed." data-zh="事实与解读是两个独立字段进来的，也按两个独立字段存。只活在文案里的承诺，会在第一次赶时间的时候被打破；而成为数据形状的承诺，不守它就发不进来。这就是它这么做的全部理由——那两个数组你可以自己在 /api/briefs/feed 的响应里看到。">Facts and reading arrive as two separate fields and are stored as two separate fields. A promise that is the shape of the data cannot be broken without the publish being rejected.</p>
   </div>
+  <p class="note" style="margin-top:14px" data-en="Two more things about the shape. One brief is one language: a version written independently in another language is published as its own entry, tagged with its language, because the two are not translations of each other and printing them as one would say something untrue about both. And a source without a link is a source with no page to link — some facts are computed from exchange APIs directly, so there is nothing to point at. An entry with no linked source is not an unverified entry, and the count shows how many of its sources carry a link so you can see the difference rather than guess at it." data-zh="关于形状还有两条。一期只有一种语言：另一种语言下独立写成的那一份会作为自己的一条发布，并标出语言——两者不是互译，把它们印成一条会对两边都说一句假话。另外，没有链接的来源是「没有网页可引」的来源：有些事实是直接从交易所接口算出来的，根本没有页面可指。没有链接的那一条不等于未经核实；条数里会写明其中几条带链接，让你看得见这个区别，而不是自己猜。">One brief is one language, and a source without a link is a source with no page to link — not an unverified one.</p>
 </section>
 
 <section>
@@ -72,7 +73,7 @@
   <div class="board">
     <div class="cell"><span class="k" data-en="Marked open" data-zh="标为公开">Marked open</span><span class="v" style="font-size:1.05rem" data-en="Anyone" data-zh="任何人">Anyone</span><span class="s" data-en="no wallet, no login" data-zh="不需要钱包，不需要登录">no wallet, no login</span></div>
     <div class="cell"><span class="k" data-en="Marked gated" data-zh="标为门后">Marked gated</span><span class="v" style="font-size:1.05rem" data-en="Pass holders" data-zh="持证者">Pass holders</span><span class="s" data-en="checked on the chain, each request" data-zh="每次请求都在链上复查">checked on the chain, each request</span></div>
-    <div class="cell"><span class="k" data-en="Kept here" data-zh="本页保留">Kept here</span><span class="v" style="font-size:1.05rem">60</span><span class="s" data-en="newest first, older ones dropped" data-zh="最新在前，更早的会被挤掉">newest first, older ones dropped</span></div>
+    <div class="cell"><span class="k" data-en="Kept here" data-zh="本页保留">Kept here</span><span class="v" id="bKeep" style="font-size:1.05rem">…</span><span class="s" data-en="newest first, older ones dropped" data-zh="最新在前，更早的会被挤掉">newest first, older ones dropped</span></div>
   </div>
   <div class="callout">
     <span class="eyebrow" data-en="The rule that keeps the door honest" data-zh="让这道门不至于变成装饰的那条规矩">The rule that keeps the door honest</span>
@@ -123,6 +124,6 @@ curl -s https://gojipower.xyz/api/gate</pre>
   <p style="margin-top:10px" data-en="No price target, no return and no forecast is offered anywhere on this page. Nothing here is investment advice. Trading futures, including copy trading, can lose the entire amount committed." data-zh="本页任何位置都不提供价格目标、收益承诺或预测。本页内容不构成投资建议。合约交易（含跟单）可能损失全部投入金额。">No price target, no return and no forecast is offered anywhere on this page. Nothing here is investment advice. Trading futures, including copy trading, can lose the entire amount committed.</p>
 </footer>
 </div>
-<script src="assets/site.js?v=b9f55fbcf2"></script>
+<script src="assets/site.js?v=bfa517c8ee"></script>
 </body>
 </html>
