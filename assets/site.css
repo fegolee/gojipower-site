@@ -240,3 +240,40 @@ footer{border-top:1px solid var(--line);padding-block:34px;color:var(--muted);fo
 @media (max-width:480px){
   #wpanel{top:56px;right:12px;left:12px;width:auto}
 }
+
+/* ---------- 「进入」按钮 ---------- */
+/* 做成链接而不是 pill：pill 承载状态、点不动，这个要点得动。
+   a 默认带下边框（全站链接样式），这里要显式盖掉，否则胶囊底下会多一道线。 */
+.enter{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:.63rem;
+  letter-spacing:.1em;text-transform:uppercase;padding:6px 13px;
+  border:1px solid var(--line2);border-radius:999px;white-space:nowrap;
+  color:var(--cyan);background:var(--cyan-soft);
+  transition:color var(--ease),border-color var(--ease),box-shadow var(--ease)}
+.enter:hover{border-color:var(--cyan);box-shadow:0 0 16px rgba(53,214,232,.18);text-shadow:none}
+.enter::after{content:"\2192";opacity:.75}          /* → 本站内 */
+.enter.out::after{content:"\2197"}                  /* ↗ 离站 */
+/* 面板页眉右侧放两个以上控件时用它，否则 space-between 会把中间那个顶到正中 */
+.phr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* ---------- 研报列表（/brief） ---------- */
+.brf{display:flex;flex-direction:column;gap:16px}
+.bi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-panel);
+  padding:19px 21px;display:flex;flex-direction:column;gap:12px;
+  transition:border-color var(--ease)}
+.bi:hover{border-color:var(--line2)}
+.bit{font-size:1rem;min-width:0;overflow-wrap:anywhere}
+.bih{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+/* 标题换行之后 space-between 只剩一个元素，徽标会掉到左边。推到右边去，
+   短标题和长标题就是同一个样子。 */
+.bih .pill{margin-left:auto}
+/* 推送来的标题、覆盖期、平台名长度不可控，等宽字体不会自己断 —— 显式给断点 */
+.bim{font-family:var(--mono);font-size:.68rem;letter-spacing:.03em;color:var(--muted);
+  overflow-wrap:anywhere}
+.bsec{display:flex;flex-direction:column;gap:7px}
+/* 推送来的正文里会有 44 字符的链上地址，等宽字体一个断点都没有。
+   375 下实测 li 376 > 275，一路传到 .wrap，而且这一次**真的出了横向滚动条**
+   （doc 426 > 375）。断点只给 .bi 子树 —— 不可断字符串是从推送进来的，
+   静态页那些人写的句子不需要这条，也不该被它改掉。 */
+.bi,.bi li,.bi a{overflow-wrap:anywhere}
+.bi .note{margin:0}
+.brf>.note{margin:0}

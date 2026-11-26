@@ -21,7 +21,9 @@ sed -i '' -E "s/var BEAGLE_V = \"[0-9a-f]+\"/var BEAGLE_V = \"$BEAGLE\"/; s/var 
 
 JS=$(shasum -a 256 assets/site.js | cut -c1-10)
 CSS=$(shasum -a 256 assets/site.css | cut -c1-10)
-for f in index.html nft.html event.html dexfans.html 404.html; do
+# 页面列表写死过一次，于是新加的 brief.html 没被改到，线上会拿 4 小时前的旧脚本
+# —— 而 curl 永远看不见这个（它没有浏览器缓存）。改成通配：新页面不可能再漏。
+for f in *.html; do
   [ -f "$f" ] || continue
   sed -i '' -E "s#(assets/site\.js)(\?v=[0-9a-f]+)?#\1?v=$JS#g; s#(assets/site\.css)(\?v=[0-9a-f]+)?#\1?v=$CSS#g" "$f"
 done

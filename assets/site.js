@@ -17,9 +17,13 @@ function applyLang(){
   if(lb) lb.textContent = lang==="en" ? "中文" : "EN";
   document.documentElement.lang = lang==="zh" ? "zh-Hans" : "en";
 }
+// 切语言之后要重画的东西登记在这里。data-en/data-zh 那套只管静态文本，
+// 而研报列表是 JS 画出来的 —— 不登记的话切了语言它还留在原来那一种。
+var LANGHOOKS=[];
 var LANGBTN=document.getElementById("lang");
 if(LANGBTN) LANGBTN.addEventListener("click",function(){
   lang = lang==="en" ? "zh" : "en"; LS("goji.lang",lang); applyLang(); uplink(null);
+  LANGHOOKS.forEach(function(f){try{f()}catch(e){}});
 });
 
 // 本站只有一个视觉世界（深色终端），不提供主题切换——浅色下的 HUD 两头不靠。
@@ -505,4 +509,181 @@ function beagleSignIn(which) {
   fetch("/api/auth/session").then(function (r) { return r.json(); }).then(function (s) {
     if (s && s.signedIn) setBtn(s);
   }).catch(function () {});
+})();
+
+/* ───────────────── 研报列表（只在 /brief 上跑） ─────────────────
+   读 /api/briefs/feed。开不开锁由服务端判，前端只负责显示它判出来的结果 ——
+   把判定放到前端等于把门画在门外。
+
+   **这一段一个 innerHTML 都没有。** 文本是另一台机器推进来的，
+   全部走 textContent 落地；端点那边也只收纯文本。test/briefs.mjs 里有一条
+   断言专门扫这个块，出现 innerHTML 就红。                                  */
+
+if (document.getElementById("brfeed")) (function () {
+  var box = document.getElementById("brfeed");
+  var last = null;                       // 最近一次成功的响应，切语言时重画用
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  // 中英各一份时按当前语言取，缺的那一边回落到另一边 ——
+  // 宁可显示一种语言，也不要显示一个空白。
+  function pick(en, zh) {
+    var has = function (v) { return typeof v === "string" ? v.length > 0 : !!(v && v.length); };
+    var want = lang === "zh" ? zh : en, other = lang === "zh" ? en : zh;
+    return has(want) ? want : (has(other) ? other : want);
+  }
+  function stamp(iso) {
+    return typeof iso === "string" && iso.length >= 16
+      ? iso.slice(0, 10) + " " + iso.slice(11, 16) + " UTC" : "—";
+  }
+  function soon(big, sub, note, cls) {
+    var w = el("div", "soon");
+    var b = el("div", "big", big); if (cls) b.style.color = "var(--" + cls + ")";
+    w.appendChild(b);
+    if (sub) w.appendChild(el("div", "sub", sub));
+    if (note) w.appendChild(el("p", null, note));
+    return w;
+  }
+
+  function section(label, arr, labelCls) {
+    var w = el("div", "bsec");
+    var h = el("span", "eyebrow", label);
+    if (labelCls) h.style.color = "var(--" + labelCls + ")";
+    w.appendChild(h);
+    var ul = el("ul", "plain");
+    arr.forEach(function (x) { ul.appendChild(el("li", null, x)); });
+    w.appendChild(ul);
+    return w;
+  }
+
+  function item(it) {
+    var art = el("article", "bi");
+    var head = el("div", "bih");
+    head.appendChild(el("h3", "bit", pick(it.title, it.titleZh)));
+    var open = it.visibility === "public";
+    head.appendChild(el("span", "pill " + (open ? "g" : "n"),
+      open ? T("open", "公开") : T("behind the gate", "门后")));
+    art.appendChild(head);
+
+    var meta = [stamp(it.at)];
+    if (it.covers) meta.push(T("covers ", "覆盖 ") + it.covers + T(" (as stated by the source)", "（来源自述）"));
+    if (it.alsoPostedTo && it.alsoPostedTo.length)
+      meta.push(T("also published on ", "同时发布于 ") + it.alsoPostedTo.join(", "));
+    art.appendChild(el("div", "bim", meta.join("  ·  ")));
+
+    if (it.locked) {
+      var n = it.counts || {};
+      art.appendChild(el("p", "note", T(
+        "Behind the gate. " + (n.facts || 0) + " facts" + (n.reading ? " and a reading section" : "") +
+          ". Connect a wallet that meets the bar to read it.",
+        "在门后。" + (n.facts || 0) + " 条事实" + (n.reading ? "，另有解读一节" : "") +
+          "。连接一个达标的钱包即可阅读。")));
+      return art;
+    }
+    if (it.unreadable) {
+      art.appendChild(el("p", "note", T("This entry could not be read just now.", "这一条此刻读不出来。")));
+      return art;
+    }
+
+    var facts = pick(it.facts, it.factsZh) || [];
+    if (facts.length) art.appendChild(section(T("Facts", "事实"), facts));
+    var reading = pick(it.reading, it.readingZh) || [];
+    if (reading.length)
+      art.appendChild(section(T("Reading · no predictive weight", "解读 · 不带预测权重"), reading, "amber"));
+
+    if (it.sources && it.sources.length) {
+      var w = el("div", "bsec");
+      w.appendChild(el("span", "eyebrow", T("Sources", "来源")));
+      var ul = el("ul", "plain");
+      it.sources.forEach(function (s) {
+        var li = el("li");
+        var a = el("a", null, s.label || s.url);
+        a.href = s.url; a.target = "_blank"; a.rel = "noopener nofollow";
+        li.appendChild(a);
+        ul.appendChild(li);
+      });
+      w.appendChild(ul);
+      art.appendChild(w);
+    }
+    return art;
+  }
+
+  function access(j) {
+    var v = document.getElementById("bYou"), sub = document.getElementById("bYouS");
+    if (!v) return;
+    var txt, col, note;
+    if (j.unlocked) {
+      txt = T("Open", "已开"); col = "good";
+      note = T("pass verified on the chain", "持证已在链上验证");
+    } else if (j.reason === "below-threshold") {
+      txt = T("Below the bar", "未达标"); col = "bad";
+      note = T("holdings read, under the threshold", "持仓已读，低于门槛");
+    } else if (j.reason === "holdings-unreadable") {
+      txt = T("Cannot tell", "判不出"); col = "amber";
+      note = T("holdings could not be read — try again", "持仓此刻读不到，稍后再试");
+    } else {
+      txt = T("Not signed in", "未登录"); col = "muted";
+      note = T("connect a wallet to check", "连接钱包后判定");
+    }
+    v.textContent = txt; v.style.color = "var(--" + col + ")";
+    if (sub) { sub.textContent = note; sub.removeAttribute("data-en"); sub.removeAttribute("data-zh"); }
+  }
+
+  function draw() {
+    var j = last;
+    if (!j) return;
+    document.getElementById("bTotal").textContent = fmtN(j.total);
+    document.getElementById("bLast").textContent =
+      j.items && j.items.length ? String(j.items[0].at || "").slice(0, 10) : "—";
+    document.getElementById("bGate").textContent =
+      j.thresholdUsd == null ? T("not set", "未设定") : "$" + j.thresholdUsd;
+    access(j);
+
+    box.textContent = "";
+    if (!j.items || !j.items.length) {
+      box.appendChild(soon(
+        T("Nothing here yet", "这页上还没有任何一期"),
+        T("no brief has reached this page", "还没有任何一期推到这一页"),
+        T("The page is live and the store is empty — that is what this says, and it will say something else the moment the first one arrives. It does not pretend to be waiting for anything in particular.",
+          "页面已经在跑，存储是空的——它现在说的就是这件事；第一期到达的那一刻它会说别的。它不假装在等什么特定的东西。")));
+      return;
+    }
+    j.items.forEach(function (it) { box.appendChild(item(it)); });
+    if (j.total > j.returned)
+      box.appendChild(el("p", "note", T(
+        "Showing " + j.returned + " of " + j.total + " kept here.",
+        "共保留 " + j.total + " 期，显示最近 " + j.returned + " 期。")));
+  }
+
+  LANGHOOKS.push(function () { if (last) draw(); });
+
+  fetch("/api/briefs/feed?limit=10", { credentials: "same-origin" })
+    .then(function (r) { return r.json().then(function (j) { return { status: r.status, j: j }; }); })
+    .then(function (x) {
+      // 「拿到了一个 JSON」和「拿到了答案」是两件事 —— 按 ok 判，不按 r.ok 判。
+      if (x.status !== 200 || !x.j || !x.j.ok) throw new Error((x.j && x.j.message) || ("HTTP " + x.status));
+      last = x.j;
+      uplink(true);
+      draw();
+    })
+    .catch(function (e) {
+      uplink(false);
+      ["bTotal", "bLast", "bGate", "bYou"].forEach(function (id) { markStale(id, new Date().toISOString().slice(0, 10)); });
+      var ys = document.getElementById("bYouS");
+      if (ys) { ys.removeAttribute("data-en"); ys.removeAttribute("data-zh"); }
+      box.textContent = "";
+      // 读不到就说读不到。空列表同时长得像「读失败」和「还没有简报」，
+      // 把前者显示成后者是在说一句假话。
+      box.appendChild(soon(
+        T("Live read failed", "实时读取失败"),
+        T("the list could not be read", "列表此刻读不到"),
+        T("This is the read failing, not an empty list. Nothing is being hidden and nothing has been deleted — reload, or check the endpoint yourself with the command in section 04.",
+          "这是读取失败，不是列表为空。没有东西被隐藏，也没有东西被删除——刷新一次，或者用第 04 节那条命令自己查这个端点。") +
+        "  (" + String((e && e.message) || e).slice(0, 120) + ")",
+        "bad"));
+    });
 })();
